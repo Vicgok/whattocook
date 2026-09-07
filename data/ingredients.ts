@@ -561,3 +561,5 @@ export const ingredients: Ingredient[] = definitions.flatMap(
 export const ingredientsById = new Map(
   ingredients.map((ingredient) => [ingredient.id, ingredient]),
 );
+
+export const getIngredientById = (id: string) => ingredientsById.get(id);

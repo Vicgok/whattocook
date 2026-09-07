@@ -1,7 +1,7 @@
-export type IngredientStatus = "owned" | "missing" | "optional";
+import { RecipeIngredient } from "../domain/ingredients/ingredient.types";
+
 export type Recipe = {
   id: string; title: string; timeMinutes: number; difficulty: "Easy" | "Medium" | "Hard"; calories: number; protein: number;
-  ingredientMatch: { owned: number; total: number };
-  ingredients: { name: string; status: IngredientStatus }[];
+  ingredients: RecipeIngredient[];
   steps: { title: string; description: string; durationMinutes?: number }[];
 };

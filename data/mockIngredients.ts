@@ -1,21 +1,21 @@
 export const pantryGroups = [
-  { title: "Vegetables", items: ["Onion", "Tomato", "Capsicum"] },
-  { title: "Protein", items: ["Eggs", "Chicken"] },
-  { title: "Grains", items: ["Rice"] },
+  { title: "Vegetables", ingredientIds: ["onion", "tomato", "bell-pepper"] },
+  { title: "Protein", ingredientIds: ["egg", "chicken"] },
+  { title: "Grains", ingredientIds: ["rice"] },
 ];
-export const defaultPantry = [
-  "Chicken",
-  "Eggs",
-  "Tomato",
-  "Onion",
-  "Rice",
-  "Capsicum",
+export const defaultPantryIngredientIds = [
+  "chicken",
+  "egg",
+  "tomato",
+  "onion",
+  "rice",
+  "bell-pepper",
 ];
-export const recentIngredients = ["Eggs", "Milk", "Rice"];
-export const popularIngredients = [
-  "Tomato",
-  "Onion",
-  "Potato",
-  "Chicken",
-  "Paneer",
+export const recentIngredientIds = ["egg", "milk", "rice"];
+export const popularIngredientIds = [
+  "tomato",
+  "onion",
+  "potato",
+  "chicken",
+  "paneer",
 ];

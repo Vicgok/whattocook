@@ -4,11 +4,12 @@ export type UserPreferences = {
   diet: string;
   nutritionGoals: string[];
   allergies: string[];
-  avoidedIngredients: string[];
+  avoidedIngredients: AvoidedIngredient[];
   units: "Metric" | "Imperial";
   notificationsEnabled: boolean;
   appearance: string;
 };
+export type AvoidedIngredient = { type: "canonical"; ingredientId: string } | { type: "custom"; value: string };
 
 type AppContextValue = {
   isAuthenticated: boolean;
