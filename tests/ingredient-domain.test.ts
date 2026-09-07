@@ -13,6 +13,7 @@ expect(resolve("brinjal")==="eggplant","brinjal resolves to Eggplant");
 expect(resolve("coriander leaves")==="cilantro","coriander leaves resolves to Cilantro");
 expect(resolve("garbanzo beans")==="chickpeas","garbanzo beans resolves to Chickpeas");
 expect(searchIngredients("caps",ingredients)[0]?.ingredient.id==="bell-pepper","alias prefix search ranks Bell Pepper");
+expect(searchIngredients("beans",ingredients).some(({ingredient})=>ingredient.id==="cannellini-beans"),"word search finds Cannellini Beans");
 const pantry=(...ids:string[]):PantryItem[]=>ids.map((ingredientId,index)=>({id:`p${index}`,userId:"u",ingredientId,createdAt:"2026-01-01",updatedAt:"2026-01-01"}));
 const recipe=(...rows:[string,boolean?][]):RecipeIngredient[]=>rows.map(([ingredientId,isOptional],index)=>({id:`r${index}`,recipeId:"r",ingredientId,isOptional:!!isOptional}));
 expect(matchRecipeToPantry(pantry("red-onion"),recipe(["onion"]),ingredients).matchPercentage===100,"red onion satisfies onion");

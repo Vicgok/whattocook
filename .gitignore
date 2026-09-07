@@ -1,6 +1,7 @@
 .expo
 /node_modules
 /.expo-shared
+/.ingredient-test-build
 
 # Docs
 /docs
