@@ -1,0 +1,8 @@
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { PantryProvider } from "@/context/PantryContext";
+import { AppProvider } from "@/context/AppContext";
+
+export default function RootLayout() {
+  return <AppProvider><PantryProvider><StatusBar style="dark" /><Stack screenOptions={{ headerShown: false }}><Stack.Screen name="(tabs)" /><Stack.Screen name="recipes" /><Stack.Screen name="cooking" /><Stack.Screen name="auth" /><Stack.Screen name="account" /></Stack></PantryProvider></AppProvider>;
+}

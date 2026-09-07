@@ -1,0 +1,7 @@
+import { Ingredient } from "./ingredient.types";
+/** Conservative text key: it enables lookup, not semantic substitution. */
+export function normalizeIngredientText(value: string): string { return value.toLocaleLowerCase("en-US").trim().replace(/[’'`]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim(); }
+export function singularizeSafe(value: string): string { const words = normalizeIngredientText(value).split(" "); const last = words.at(-1) ?? ""; if (last.endsWith("ies") && last.length > 4) words[words.length - 1] = `${last.slice(0,-3)}y`; else if (last.endsWith("oes") && last.length > 4) words[words.length - 1] = last.slice(0,-2); else if (last.endsWith("s") && !last.endsWith("ss") && last.length > 3) words[words.length - 1] = last.slice(0,-1); return words.join(" "); }
+export function ingredientLookup(ingredients: Ingredient[]): Map<string, Ingredient>;
+export function ingredientLookup(ingredients: Ingredient[]): Map<string, Ingredient> { const index = new Map<string, Ingredient>(); for (const ingredient of ingredients) for (const term of [ingredient.name, ingredient.slug, ...ingredient.aliases]) index.set(normalizeIngredientText(term), ingredient); return index; }
+export function resolveIngredient(query: string, ingredients: Ingredient[]): Ingredient | undefined { const index = ingredientLookup(ingredients); const key = normalizeIngredientText(query); return index.get(key) ?? index.get(singularizeSafe(key)); }

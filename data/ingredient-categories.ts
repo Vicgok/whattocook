@@ -1,0 +1,26 @@
+import { IngredientCategory } from "../domain/ingredients/ingredient.types";
+export const ingredientCategories: IngredientCategory[] = [
+  ["vegetables", "Vegetables"],
+  ["fruits", "Fruits"],
+  ["herbs", "Herbs"],
+  ["spices-seasonings", "Spices & Seasonings"],
+  ["meat", "Meat"],
+  ["poultry", "Poultry"],
+  ["seafood", "Seafood"],
+  ["eggs", "Eggs"],
+  ["dairy", "Dairy"],
+  ["grains-rice", "Grains & Rice"],
+  ["pasta-noodles", "Pasta & Noodles"],
+  ["legumes-pulses", "Legumes & Pulses"],
+  ["baking", "Baking"],
+  ["oils-fats", "Oils & Fats"],
+  ["sauces-condiments", "Sauces & Condiments"],
+  ["canned-jarred", "Canned & Jarred"],
+  ["nuts-seeds", "Nuts & Seeds"],
+  ["pantry-staples", "Pantry Staples"],
+].map(([id, name], sortOrder) => ({
+  id,
+  slug: id,
+  name,
+  sortOrder: sortOrder + 1,
+}));

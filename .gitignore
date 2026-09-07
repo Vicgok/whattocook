@@ -1,0 +1,6 @@
+.expo
+/node_modules
+/.expo-shared
+
+# Docs
+/docs
