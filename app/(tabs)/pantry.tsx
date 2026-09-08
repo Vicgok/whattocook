@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { usePantry } from "@/context/PantryContext";
-import { colors, IngredientChip, IngredientRow, PrimaryButton, SectionHeader, SuggestionChip } from "@/components/ui";
+import { colors, IngredientChip, IngredientRow, PrimaryButton, SectionHeader, SuggestionChip, TabScreenHeader } from "@/components/ui";
 import { EmptyState } from "@/components/states";
 import { getIngredientById, ingredients } from "@/data/ingredients";
 import { searchIngredients } from "@/domain/ingredients/ingredient-search";
@@ -21,8 +21,7 @@ export default function Pantry() {
   const matchingIngredients = searchIngredients(ingredientSearch, ingredients).map((result) => result.ingredient);
   const suggestions = suggestionIds.map(getIngredientById).filter((ingredient): ingredient is NonNullable<typeof ingredient> => Boolean(ingredient));
 
-  return <View style={styles.page}><ScrollView contentContainerStyle={styles.content}>
-    <Text style={styles.title}>Your Pantry</Text>
+  return <View style={styles.page}><TabScreenHeader title="Your Pantry" /><ScrollView contentContainerStyle={styles.content}>
     <TextInput value={search} onChangeText={setSearch} placeholder="Search your pantry" style={styles.search}/>
     {pantry.length === 0 ? <EmptyState title="Your pantry is empty" text="Add what you have at home so WhatToCook can suggest better meals." actionLabel="Add ingredients" onAction={() => setVisible(true)}/> : <>
       <SectionHeader>Available ingredients</SectionHeader>
@@ -39,4 +38,4 @@ export default function Pantry() {
   </View></View></Modal></View>;
 }
 
-const styles = StyleSheet.create({ page:{flex:1,backgroundColor:"white"}, content:{padding:20,paddingTop:58,paddingBottom:32,gap:16}, title:{fontSize:28,fontWeight:"700"}, search:{height:50,borderWidth:1,borderColor:colors.border,borderRadius:10,paddingHorizontal:12,fontSize:16}, overlay:{flex:1,justifyContent:"flex-end",backgroundColor:"rgba(0,0,0,.25)"}, sheet:{backgroundColor:"white",borderTopLeftRadius:20,borderTopRightRadius:20,padding:20,gap:14}, sheetTitle:{fontSize:22,fontWeight:"700"}, support:{color:colors.textSecondary}, chips:{flexDirection:"row",flexWrap:"wrap",gap:8} });
+const styles = StyleSheet.create({ page:{flex:1,backgroundColor:"white"}, content:{paddingHorizontal:20,paddingBottom:32,gap:16}, search:{height:50,borderWidth:1,borderColor:colors.border,borderRadius:10,paddingHorizontal:12,fontSize:16}, overlay:{flex:1,justifyContent:"flex-end",backgroundColor:"rgba(0,0,0,.25)"}, sheet:{backgroundColor:"white",borderTopLeftRadius:20,borderTopRightRadius:20,padding:20,gap:14}, sheetTitle:{fontSize:22,fontWeight:"700"}, support:{color:colors.textSecondary}, chips:{flexDirection:"row",flexWrap:"wrap",gap:8} });
