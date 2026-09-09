@@ -3,6 +3,7 @@ import { Recipe } from "@/types/recipe";
 import { RecipeMatchResult } from "@/domain/ingredients/ingredient.types";
 import { getIngredientById } from "@/data/ingredients";
 import { colors, PlaceholderImage } from "./ui";
+import { radius, spacing, typography } from "@/theme";
 
 export function RecipeCard({
   recipe,
@@ -60,22 +61,21 @@ const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: radius.card,
     overflow: "hidden",
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
   },
   compact: { flexDirection: "row" },
-  body: { padding: 12, gap: 4, flex: 1 },
+  body: { padding: spacing.base, gap: 6, flex: 1 },
   titleRow: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
   title: {
-    fontSize: 16,
-    fontWeight: "700",
+    ...typography.cardTitle,
     color: colors.textPrimary,
     flex: 1,
   },
-  meta: { fontSize: 13, color: colors.textSecondary },
-  protein: { fontSize: 14, fontWeight: "600", marginTop: 4 },
-  match: { fontSize: 13, color: colors.textSecondary },
-  missing: { fontSize: 13, color: colors.textSecondary },
-  view: { fontSize: 14, fontWeight: "700", marginTop: 4 },
+  meta: { ...typography.metadata, color: colors.textSecondary },
+  protein: { ...typography.metadata, color: colors.text, marginTop: 4 },
+  match: { ...typography.metadata, color: colors.primaryDark },
+  missing: { ...typography.metadata, color: colors.textSecondary },
+  view: { ...typography.metadata, color: colors.primary, marginTop: 4 },
 });

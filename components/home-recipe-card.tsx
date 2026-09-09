@@ -1,15 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Recipe } from "@/types/recipe";
-
-const palette = {
-  primaryDark: "#294936",
-  primarySoft: "#E8F2EA",
-  surface: "#FFFFFF",
-  surfaceSoft: "#F3F5F0",
-  text: "#172019",
-  textSecondary: "#687069",
-  border: "#DDE3DC",
-};
+import { colors as palette, radius, spacing, typography } from "@/theme";
 
 export function HomeRecipeCard({
   recipe,
@@ -74,10 +65,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 1,
     borderColor: palette.border,
-    borderRadius: 20,
+    borderRadius: radius.lg,
     backgroundColor: palette.surface,
   },
-  compactCard: { width: 236, borderRadius: 18 },
+  compactCard: { width: 236, borderRadius: radius.card },
   cardPressed: { opacity: 0.88 },
   image: {
     width: "100%",
@@ -88,19 +79,15 @@ const styles = StyleSheet.create({
   },
   compactImage: { aspectRatio: 16 / 9 },
   imageLabel: { fontSize: 13, color: palette.textSecondary },
-  body: { alignItems: "flex-start", padding: 16, gap: 7 },
+  body: { alignItems: "flex-start", padding: spacing.base, gap: 7 },
   compactBody: { minHeight: 132, padding: 14, gap: 5 },
   title: {
-    fontSize: 18,
-    lineHeight: 23,
-    fontWeight: "700",
+    ...typography.cardTitle,
     color: palette.text,
   },
-  compactTitle: { fontSize: 17, lineHeight: 22, fontWeight: "600" },
+  compactTitle: typography.cardTitle,
   meta: {
-    fontSize: 13,
-    lineHeight: 19,
-    fontWeight: "500",
+    ...typography.metadata,
     color: palette.textSecondary,
   },
   compactMeta: { lineHeight: 18 },
@@ -108,7 +95,7 @@ const styles = StyleSheet.create({
     minHeight: 30,
     justifyContent: "center",
     paddingHorizontal: 11,
-    borderRadius: 15,
+    borderRadius: radius.pill,
     backgroundColor: palette.primarySoft,
   },
   matchText: { fontSize: 13, fontWeight: "600", color: palette.primaryDark },

@@ -16,19 +16,7 @@ import { usePantry } from "@/context/PantryContext";
 import { getIngredientById, ingredients } from "@/data/ingredients";
 import { recipes } from "@/data/mockRecipes";
 import { matchRecipeToPantry } from "@/domain/ingredients/ingredient-matcher";
-
-const palette = {
-  primary: "#3F6B4F",
-  primaryDark: "#294936",
-  primarySoft: "#E8F2EA",
-  freshGreen: "#A9CEB1",
-  background: "#FAFBF7",
-  surface: "#FFFFFF",
-  surfaceSoft: "#F3F5F0",
-  text: "#172019",
-  textSecondary: "#687069",
-  border: "#DDE3DC",
-};
+import { colors as palette } from "@/theme";
 
 const suggestions = ["High protein", "Under 20 min", "Healthy", "Comfort food"];
 

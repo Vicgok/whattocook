@@ -12,6 +12,7 @@ import { PlaceholderImage, colors, TabScreenHeader } from "@/components/ui";
 import { EmptyState } from "@/components/states";
 import { recipes } from "@/data/mockRecipes";
 import { useApp } from "@/context/AppContext";
+import { radius, spacing, typography } from "@/theme";
 
 export default function Saved() {
   const router = useRouter();
@@ -83,27 +84,34 @@ export default function Saved() {
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "white" },
-  content: { paddingHorizontal: 20, paddingBottom: 32, gap: 12 },
+  page: { flex: 1, backgroundColor: colors.background },
+  content: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xxl,
+    gap: spacing.md,
+  },
   search: {
-    height: 50,
+    minHeight: 52,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    fontSize: 16,
+    borderRadius: radius.button,
+    paddingHorizontal: spacing.base,
+    backgroundColor: colors.surface,
+    ...typography.button,
+    color: colors.text,
     marginTop: 6,
   },
-  cards: { gap: 12, marginTop: 6 },
+  cards: { gap: spacing.md, marginTop: 6 },
   card: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: radius.card,
     overflow: "hidden",
+    backgroundColor: colors.surface,
   },
-  body: { padding: 12, gap: 5 },
+  body: { padding: spacing.base, gap: 6 },
   row: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
-  cardTitle: { fontSize: 17, fontWeight: "700", flex: 1 },
-  meta: { fontSize: 14, color: colors.textSecondary },
-  protein: { fontSize: 14, fontWeight: "600" },
+  cardTitle: { ...typography.cardTitle, color: colors.text, flex: 1 },
+  meta: { ...typography.metadata, color: colors.textSecondary },
+  protein: { ...typography.metadata, color: colors.primaryDark },
 });

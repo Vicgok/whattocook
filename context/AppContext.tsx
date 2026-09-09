@@ -1,7 +1,7 @@
 import { createContext, ReactNode, useContext, useState } from "react";
 
 export type UserPreferences = {
-  diet: string;
+  dietPreferences: string[];
   nutritionGoals: string[];
   allergies: string[];
   avoidedIngredients: AvoidedIngredient[];
@@ -28,7 +28,7 @@ type AppContextValue = {
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
 const initialPreferences: UserPreferences = {
-  diet: "No preference",
+  dietPreferences: ["No preference"],
   nutritionGoals: ["High protein"],
   allergies: [],
   avoidedIngredients: [],

@@ -1,5 +1,6 @@
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { colors, PrimaryButton, SecondaryButton } from "./ui";
+import { radius, spacing, typography } from "@/theme";
 
 export function EmptyState({
   title,
@@ -96,24 +97,27 @@ export function OfflineBanner({ onRetry }: { onRetry: () => void }) {
   );
 }
 const styles = StyleSheet.create({
-  state: { alignItems: "center", paddingVertical: 40, gap: 12 },
+  state: {
+    alignItems: "center",
+    paddingVertical: spacing.xxxl,
+    gap: spacing.md,
+  },
   icon: {
     width: 68,
     height: 68,
-    borderRadius: 34,
-    backgroundColor: colors.placeholder,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primarySoft,
     alignItems: "center",
     justifyContent: "center",
   },
-  iconText: { fontSize: 28, color: colors.textSecondary },
+  iconText: { fontSize: 28, color: colors.primary },
   title: {
-    fontSize: 21,
-    fontWeight: "700",
+    ...typography.sectionHeading,
     color: colors.textPrimary,
     textAlign: "center",
   },
   text: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
     textAlign: "center",
     lineHeight: 20,
@@ -123,11 +127,11 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: radius.card,
     overflow: "hidden",
   },
   image: { height: 100, backgroundColor: colors.placeholder },
-  lines: { padding: 12, gap: 8 },
+  lines: { padding: spacing.md, gap: spacing.sm },
   line: {
     height: 14,
     borderRadius: 7,
@@ -141,9 +145,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
-    borderRadius: 10,
-    padding: 12,
+    borderRadius: radius.card,
+    padding: spacing.md,
   },
-  bannerTitle: { fontWeight: "700", color: colors.textPrimary },
-  bannerText: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
+  bannerTitle: { ...typography.cardTitle, color: colors.text },
+  bannerText: {
+    ...typography.metadata,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
 });

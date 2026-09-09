@@ -1,32 +1,39 @@
-import { ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View, ViewStyle } from "react-native";
+import { type ReactNode } from "react";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type ViewStyle,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { colors, radius, spacing, typography } from "@/theme";
 
-export const colors = {
-  background: "#FFFFFF",
-  surface: "#F4F4F4",
-  border: "#D9D9D9",
-  textPrimary: "#111111",
-  textSecondary: "#666666",
-  placeholder: "#E5E5E5",
+export { colors, radius, spacing, typography } from "@/theme";
+
+type ButtonProps = {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  style?: ViewStyle;
 };
 export function PrimaryButton({
   label,
   onPress,
   disabled,
   style,
-}: {
-  label: string;
-  onPress: () => void;
-  disabled?: boolean;
-  style?: ViewStyle;
-}) {
+}: ButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
       disabled={disabled}
       onPress={onPress}
-      style={[styles.primary, disabled && styles.disabled, style]}
+      style={({ pressed }) => [
+        styles.primary,
+        disabled && styles.disabled,
+        pressed && !disabled && styles.primaryPressed,
+        style,
+      ]}
     >
       <Text style={styles.primaryText}>{label}</Text>
     </Pressable>
@@ -37,18 +44,18 @@ export function SecondaryButton({
   onPress,
   disabled,
   style,
-}: {
-  label: string;
-  onPress: () => void;
-  disabled?: boolean;
-  style?: ViewStyle;
-}) {
+}: ButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
       disabled={disabled}
       onPress={onPress}
-      style={[styles.secondary, disabled && styles.disabled, style]}
+      style={({ pressed }) => [
+        styles.secondary,
+        disabled && styles.disabled,
+        pressed && !disabled && styles.secondaryPressed,
+        style,
+      ]}
     >
       <Text style={styles.secondaryText}>{label}</Text>
     </Pressable>
@@ -64,7 +71,12 @@ export function IngredientChip({
   removable?: boolean;
 }) {
   return (
-    <Pressable disabled={!onPress} onPress={onPress} style={styles.chip}>
+    <Pressable
+      accessibilityRole={onPress ? "button" : undefined}
+      disabled={!onPress}
+      onPress={onPress}
+      style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
+    >
       <Text style={styles.chipText}>
         {label}
         {removable ? "  ×" : ""}
@@ -83,10 +95,18 @@ export function SuggestionChip({
 }) {
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
       onPress={onPress}
-      style={[styles.chip, selected && styles.selectedChip]}
+      style={({ pressed }) => [
+        styles.chip,
+        selected && styles.selectedChip,
+        pressed && styles.pressed,
+      ]}
     >
-      <Text style={styles.chipText}>{label}</Text>
+      <Text style={[styles.chipText, selected && styles.selectedChipText]}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -145,14 +165,14 @@ export function IngredientRow({
   return (
     <View style={styles.ingredientRow}>
       <View style={styles.check}>
-        <Text>✓</Text>
+        <Text style={styles.checkText}>✓</Text>
       </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.rowName}>{name}</Text>
         {status && <Text style={styles.rowStatus}>{status}</Text>}
       </View>
       {onRemove && (
-        <Pressable hitSlop={10} onPress={onRemove}>
+        <Pressable accessibilityRole="button" hitSlop={10} onPress={onRemove}>
           <Text style={styles.remove}>Remove</Text>
         </Pressable>
       )}
@@ -166,99 +186,118 @@ export function CookingProgress({ value }: { value: number }) {
     </View>
   );
 }
+
 export const styles = StyleSheet.create({
   primary: {
     minHeight: 52,
-    backgroundColor: colors.textPrimary,
-    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.base,
+    borderRadius: radius.button,
+    backgroundColor: colors.primary,
   },
-  primaryText: { color: "white", fontSize: 16, fontWeight: "700" },
-  disabled: { backgroundColor: "#BDBDBD" },
+  primaryPressed: {
+    backgroundColor: colors.primaryDark,
+    transform: [{ scale: 0.98 }],
+  },
+  primaryText: { ...typography.button, color: colors.surface },
   secondary: {
-    minHeight: 48,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
+    minHeight: 52,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 16,
-  },
-  secondaryText: { color: colors.textPrimary, fontSize: 16, fontWeight: "600" },
-  chip: {
+    paddingHorizontal: spacing.base,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    backgroundColor: colors.background,
+    borderRadius: radius.button,
+    backgroundColor: colors.surface,
+  },
+  secondaryPressed: {
+    backgroundColor: colors.surfaceSoft,
+    transform: [{ scale: 0.98 }],
+  },
+  secondaryText: { ...typography.button, color: colors.text },
+  disabled: { opacity: 0.45 },
+  pressed: { opacity: 0.76, transform: [{ scale: 0.98 }] },
+  chip: {
+    minHeight: 38,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: "transparent",
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceSoft,
   },
   selectedChip: {
-    backgroundColor: colors.placeholder,
-    borderColor: colors.textPrimary,
+    borderColor: colors.freshGreen,
+    backgroundColor: colors.primarySoft,
   },
-  chipText: { fontSize: 14, color: colors.textPrimary },
+  chipText: { fontSize: 14, lineHeight: 18, color: colors.text },
+  selectedChipText: { fontWeight: "600", color: colors.primaryDark },
   sectionHeader: {
+    minHeight: 44,
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
   },
-  sectionTitle: { fontSize: 20, fontWeight: "700", color: colors.textPrimary },
+  sectionTitle: { ...typography.sectionHeading, color: colors.text },
   tabHeader: {
-    height: 96,
-    paddingHorizontal: 20,
-    position: "relative",
+    minHeight: 96,
+    paddingHorizontal: spacing.lg,
     justifyContent: "center",
   },
-  tabTitleArea: { position: "absolute", left: 20, right: 20, top: 35 },
-  tabTitle: { fontSize: 24, fontWeight: "700", color: colors.textPrimary },
-  tabSubtitle: { fontSize: 14, color: colors.textSecondary, marginTop: 2 },
+  tabTitleArea: { gap: spacing.xs },
+  tabTitle: { ...typography.screenTitle, color: colors.text },
+  tabSubtitle: { ...typography.body, color: colors.textSecondary },
   tabHeaderAction: {
     position: "absolute",
-    right: 20,
-    top: 31,
+    right: spacing.lg,
     minWidth: 44,
     minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
   },
   placeholder: {
-    backgroundColor: colors.placeholder,
-    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: radius.card,
+    backgroundColor: colors.surfaceSoft,
   },
-  placeholderText: { color: colors.textSecondary, fontSize: 13 },
+  placeholderText: { ...typography.metadata, color: colors.textSecondary },
   ingredientRow: {
-    minHeight: 56,
+    minHeight: 60,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#EEEEEE",
+    gap: spacing.md,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
   },
   check: {
     width: 24,
     height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.placeholder,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: radius.pill,
+    backgroundColor: colors.primarySoft,
   },
-  rowName: { fontSize: 16, fontWeight: "600", color: colors.textPrimary },
-  rowStatus: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
-  remove: { fontSize: 13, color: colors.textSecondary },
+  checkText: { color: colors.primaryDark, fontWeight: "700" },
+  rowName: { ...typography.cardTitle, color: colors.text },
+  rowStatus: {
+    ...typography.metadata,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  remove: { ...typography.metadata, color: colors.primary },
   progressTrack: {
     height: 8,
-    backgroundColor: colors.placeholder,
-    borderRadius: 4,
     overflow: "hidden",
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceSoft,
   },
   progressFill: {
     height: "100%",
-    backgroundColor: colors.textPrimary,
-    borderRadius: 4,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
   },
 });

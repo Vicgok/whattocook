@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { recipes } from "@/data/mockRecipes";
 import { getIngredientById, ingredients } from "@/data/ingredients";
 import { matchRecipeToPantry } from "@/domain/ingredients/ingredient-matcher";
@@ -20,9 +21,11 @@ import {
   LoadingRecipeCards,
   OfflineBanner,
 } from "@/components/states";
+import { radius, spacing, typography } from "@/theme";
 
 export default function RecipeResults() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { pantry } = usePantry();
   const { state: initialState } = useLocalSearchParams<{ state?: string }>();
   const [query, setQuery] = useState("High-protein dinner under 30 minutes");
@@ -63,7 +66,13 @@ export default function RecipeResults() {
     .filter(Boolean);
   const retry = () => setState("loading");
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.page}
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: insets.top + spacing.base },
+      ]}
+    >
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.back}>
           <Text>‹</Text>
@@ -122,8 +131,12 @@ export default function RecipeResults() {
   );
 }
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "white" },
-  content: { padding: 20, paddingTop: 54, paddingBottom: 32, gap: 14 },
+  page: { flex: 1, backgroundColor: colors.background },
+  content: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xxl,
+    gap: spacing.md,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -136,21 +149,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 22,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
   },
-  title: { fontSize: 20, fontWeight: "700" },
+  title: { ...typography.sectionHeading, color: colors.text },
   query: {
-    minHeight: 64,
+    minHeight: 56,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 16,
+    borderRadius: radius.button,
+    padding: spacing.base,
+    backgroundColor: colors.surface,
+    ...typography.button,
+    color: colors.text,
   },
-  heading: { fontSize: 22, fontWeight: "700", marginTop: 6 },
-  support: { fontSize: 14, color: colors.textSecondary },
+  heading: { ...typography.sectionHeading, color: colors.text, marginTop: 6 },
+  support: { ...typography.body, color: colors.textSecondary },
   filters: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  cards: { gap: 12 },
+  cards: { gap: spacing.md },
   test: {
     fontSize: 13,
     color: colors.textSecondary,

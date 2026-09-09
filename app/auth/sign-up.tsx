@@ -8,10 +8,13 @@ import {
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PrimaryButton, colors } from "@/components/ui";
+import { radius, spacing, typography } from "@/theme";
 import { useApp } from "@/context/AppContext";
 export default function SignUp() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { signIn, pendingSaveId, toggleSaved, setPendingSaveId } = useApp();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -35,7 +38,12 @@ export default function SignUp() {
     } else router.replace("/(tabs)/profile");
   };
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: insets.top + spacing.base },
+      ]}
+    >
       <Pressable onPress={() => router.back()}>
         <Text style={styles.back}>‹ Back</Text>
       </Pressable>
@@ -70,24 +78,30 @@ export default function SignUp() {
   );
 }
 const styles = StyleSheet.create({
-  content: { flexGrow: 1, padding: 20, paddingTop: 58 },
-  back: { fontSize: 16 },
-  body: { gap: 14, marginTop: 48 },
-  title: { fontSize: 30, fontWeight: "700" },
+  content: {
+    flexGrow: 1,
+    padding: spacing.lg,
+    backgroundColor: colors.background,
+  },
+  back: { ...typography.button, color: colors.primary },
+  body: { gap: spacing.md, marginTop: spacing.xxxl },
+  title: { ...typography.display, color: colors.text },
   support: {
-    fontSize: 15,
+    ...typography.body,
     color: colors.textSecondary,
     lineHeight: 21,
     marginBottom: 12,
   },
   input: {
-    height: 52,
+    minHeight: 52,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    fontSize: 16,
+    borderRadius: radius.button,
+    paddingHorizontal: spacing.base,
+    backgroundColor: colors.surface,
+    ...typography.button,
+    color: colors.text,
   },
-  link: { fontWeight: "600", textAlign: "center" },
-  error: { color: "#8a2020" },
+  link: { ...typography.metadata, color: colors.primary, textAlign: "center" },
+  error: { ...typography.metadata, color: colors.error },
 });

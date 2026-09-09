@@ -20,6 +20,7 @@ import {
   SecondaryButton,
   SectionHeader,
 } from "@/components/ui";
+import { radius, spacing, typography } from "@/theme";
 import { useApp } from "@/context/AppContext";
 import { usePantry } from "@/context/PantryContext";
 
@@ -174,12 +175,16 @@ export default function RecipeDetails() {
   );
 }
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "white" },
+  page: { flex: 1, backgroundColor: colors.background },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 20, paddingBottom: 24, gap: 14 },
+  content: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.md,
+  },
   header: {
     height: 60,
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.lg,
     flexDirection: "row",
     alignItems: "center",
   },
@@ -187,36 +192,37 @@ const styles = StyleSheet.create({
   circle: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     justifyContent: "center",
     alignItems: "center",
   },
   headerIcon: { fontSize: 24, lineHeight: 26 },
-  title: { fontSize: 28, fontWeight: "700" },
+  title: { ...typography.recipeTitle, color: colors.text },
   metadata: { flexDirection: "row", flexWrap: "wrap", gap: 14 },
   why: {
-    backgroundColor: colors.surface,
-    borderRadius: 10,
-    padding: 16,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.card,
+    padding: spacing.base,
     gap: 6,
   },
-  whyTitle: { fontSize: 16, fontWeight: "700" },
-  whyText: { fontSize: 14, color: colors.textSecondary, lineHeight: 20 },
-  subhead: { fontSize: 15, fontWeight: "700", marginTop: 3 },
+  whyTitle: { ...typography.cardTitle, color: colors.text },
+  whyText: { ...typography.body, color: colors.textSecondary },
+  subhead: { ...typography.cardTitle, color: colors.text, marginTop: 3 },
   preview: {
-    backgroundColor: colors.surface,
-    borderRadius: 10,
-    padding: 16,
+    backgroundColor: colors.surfaceSoft,
+    borderRadius: radius.card,
+    padding: spacing.base,
     gap: 5,
   },
   sticky: {
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
     borderColor: colors.border,
-    paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -224,15 +230,20 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,.25)",
+    backgroundColor: "rgba(23,32,25,.28)",
   },
   sheet: {
-    backgroundColor: "white",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    gap: 14,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radius.modal,
+    borderTopRightRadius: radius.modal,
+    padding: spacing.lg,
+    gap: spacing.md,
   },
-  sheetTitle: { fontSize: 22, fontWeight: "700" },
-  notNow: { textAlign: "center", fontWeight: "600", padding: 8 },
+  sheetTitle: { ...typography.sectionHeading, color: colors.text },
+  notNow: {
+    ...typography.metadata,
+    color: colors.primary,
+    textAlign: "center",
+    padding: 8,
+  },
 });

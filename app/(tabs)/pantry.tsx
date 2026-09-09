@@ -19,6 +19,7 @@ import {
   SuggestionChip,
   TabScreenHeader,
 } from "@/components/ui";
+import { radius, spacing, typography } from "@/theme";
 import { EmptyState } from "@/components/states";
 import { getIngredientById, ingredients } from "@/data/ingredients";
 import { searchIngredients } from "@/domain/ingredients/ingredient-search";
@@ -171,29 +172,35 @@ export default function Pantry() {
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "white" },
-  content: { paddingHorizontal: 20, paddingBottom: 32, gap: 16 },
+  page: { flex: 1, backgroundColor: colors.background },
+  content: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xxl,
+    gap: spacing.base,
+  },
   search: {
-    height: 50,
+    minHeight: 52,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    fontSize: 16,
+    borderRadius: radius.button,
+    paddingHorizontal: spacing.base,
+    backgroundColor: colors.surface,
+    ...typography.button,
+    color: colors.text,
   },
   overlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,.25)",
+    backgroundColor: "rgba(23,32,25,.28)",
   },
   sheet: {
-    backgroundColor: "white",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    gap: 14,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radius.modal,
+    borderTopRightRadius: radius.modal,
+    padding: spacing.lg,
+    gap: spacing.md,
   },
-  sheetTitle: { fontSize: 22, fontWeight: "700" },
-  support: { color: colors.textSecondary },
+  sheetTitle: { ...typography.screenTitle, color: colors.text },
+  support: { ...typography.body, color: colors.textSecondary },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
 });
