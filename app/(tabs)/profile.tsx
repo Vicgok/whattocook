@@ -1,35 +1,122 @@
 import { ComponentProps, useEffect, useMemo, useState } from "react";
-import { Alert, KeyboardAvoidingView, Modal as NativeModal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, useWindowDimensions, View, ViewStyle } from "react-native";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Modal as NativeModal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+  ViewStyle,
+} from "react-native";
 import { useRouter } from "expo-router";
-import { colors, PrimaryButton, SecondaryButton, SectionHeader } from "@/components/ui";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  colors,
+  PrimaryButton,
+  SecondaryButton,
+  SectionHeader,
+} from "@/components/ui";
 import { AvoidedIngredient, useApp } from "@/context/AppContext";
 import { getIngredientById, ingredients } from "@/data/ingredients";
 import { ingredientCategories } from "@/data/ingredient-categories";
 import { searchIngredients } from "@/domain/ingredients/ingredient-search";
 
-const dietOptions = [["No preference", "Show recipes from all diet types"], ["Vegetarian", "No meat or fish"], ["Vegan", "No meat, dairy, eggs, or animal products"], ["Eggetarian", "Vegetarian meals that may include eggs"], ["Pescatarian", "Vegetarian foods plus fish and seafood"], ["Jain", "Avoids root vegetables and other restricted ingredients"], ["Halal", "Prioritize halal-compatible ingredients and recipes"], ["Kosher", "Prioritize kosher-compatible recipes"]] as const;
-const goals = ["High protein", "High fiber", "Low calorie", "Low carb", "Balanced", "Low sodium", "Low sugar", "Heart healthy", "Weight management", "Muscle gain", "Quick meals", "Budget friendly"];
-const allergies = ["Peanuts", "Tree nuts", "Milk / Dairy", "Eggs", "Wheat", "Gluten", "Soy", "Fish", "Shellfish", "Sesame", "Mustard", "Celery"];
+const dietOptions = [
+  ["No preference", "Show recipes from all diet types"],
+  ["Vegetarian", "No meat or fish"],
+  ["Vegan", "No meat, dairy, eggs, or animal products"],
+  ["Eggetarian", "Vegetarian meals that may include eggs"],
+  ["Pescatarian", "Vegetarian foods plus fish and seafood"],
+  ["Jain", "Avoids root vegetables and other restricted ingredients"],
+  ["Halal", "Prioritize halal-compatible ingredients and recipes"],
+  ["Kosher", "Prioritize kosher-compatible recipes"],
+] as const;
+const goals = [
+  "High protein",
+  "High fiber",
+  "Low calorie",
+  "Low carb",
+  "Balanced",
+  "Low sodium",
+  "Low sugar",
+  "Heart healthy",
+  "Weight management",
+  "Muscle gain",
+  "Quick meals",
+  "Budget friendly",
+];
+const allergies = [
+  "Peanuts",
+  "Tree nuts",
+  "Milk / Dairy",
+  "Eggs",
+  "Wheat",
+  "Gluten",
+  "Soy",
+  "Fish",
+  "Shellfish",
+  "Sesame",
+  "Mustard",
+  "Celery",
+];
 const commonAllergies = allergies.slice(0, 6);
 type Sheet = "diet" | "goals" | "allergies" | "avoid" | null;
 type InfoKind = Exclude<Sheet, null> | null;
 const norm = (value: string) => value.trim().toLocaleLowerCase("en-US");
-const summary = (items: string[], empty = "None") => !items.length ? empty : items.length > 2 ? `${items.slice(0, 2).join(", ")} +${items.length - 2}` : items.join(", ");
+const summary = (items: string[], empty = "None") =>
+  !items.length
+    ? empty
+    : items.length > 2
+      ? `${items.slice(0, 2).join(", ")} +${items.length - 2}`
+      : items.join(", ");
 const sheetCopy = {
-  diet: { title: "Diet", helper: "Choose the eating style that best matches your usual meals.", info: "Your diet preference helps WhatToCook prioritize suitable recipes.\n\nIt does not guarantee that every recipe meets religious, medical, or allergy requirements. Always review ingredients when needed." },
-  goals: { title: "Nutrition goals", helper: "Choose what you'd like meals to prioritize.", info: "Nutrition goals help rank recipes toward what matters to you.\n\nYou can choose more than one, and you can change them anytime." },
-  allergies: { title: "Allergies", helper: "Select ingredients that should be treated as allergens.", info: "We'll use these selections to help avoid recipes containing those ingredients.\n\nWhatToCook cannot guarantee allergen-free meals or detect cross-contamination. Always verify ingredients and food labels if you have an allergy." },
-  avoid: { title: "Avoid ingredients", helper: "Tell us what you don't want in recommendations.", info: "Use this for foods you dislike or prefer not to eat.\n\nFor medical allergies, use the Allergies setting instead." },
+  diet: {
+    title: "Diet",
+    helper: "Choose the eating style that best matches your usual meals.",
+    info: "Your diet preference helps WhatToCook prioritize suitable recipes.\n\nIt does not guarantee that every recipe meets religious, medical, or allergy requirements. Always review ingredients when needed.",
+  },
+  goals: {
+    title: "Nutrition goals",
+    helper: "Choose what you'd like meals to prioritize.",
+    info: "Nutrition goals help rank recipes toward what matters to you.\n\nYou can choose more than one, and you can change them anytime.",
+  },
+  allergies: {
+    title: "Allergies",
+    helper: "Select ingredients that should be treated as allergens.",
+    info: "We'll use these selections to help avoid recipes containing those ingredients.\n\nWhatToCook cannot guarantee allergen-free meals or detect cross-contamination. Always verify ingredients and food labels if you have an allergy.",
+  },
+  avoid: {
+    title: "Avoid ingredients",
+    helper: "Tell us what you don't want in recommendations.",
+    info: "Use this for foods you dislike or prefer not to eat.\n\nFor medical allergies, use the Allergies setting instead.",
+  },
 } as const;
 
 type AppModalProps = ComponentProps<typeof NativeModal>;
 function Modal(props: AppModalProps) {
-  return <NativeModal {...props} statusBarTranslucent navigationBarTranslucent />;
+  return (
+    <NativeModal {...props} statusBarTranslucent navigationBarTranslucent />
+  );
 }
 
 export default function Profile() {
-  const router = useRouter(); const { width } = useWindowDimensions(); const { isAuthenticated, user, preferences, updatePreferences } = useApp();
-  const [sheet, setSheet] = useState<Sheet>(null), [info, setInfo] = useState<InfoKind>(null), [diet, setDiet] = useState(preferences.diet), [draft, setDraft] = useState<string[]>([]), [avoid, setAvoid] = useState<AvoidedIngredient[]>([]), [search, setSearch] = useState(""), [custom, setCustom] = useState(""), [customOpen, setCustomOpen] = useState(false);
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const { isAuthenticated, user, preferences, updatePreferences } = useApp();
+  const [sheet, setSheet] = useState<Sheet>(null),
+    [info, setInfo] = useState<InfoKind>(null),
+    [diet, setDiet] = useState(preferences.diet),
+    [draft, setDraft] = useState<string[]>([]),
+    [avoid, setAvoid] = useState<AvoidedIngredient[]>([]),
+    [search, setSearch] = useState(""),
+    [custom, setCustom] = useState(""),
+    [customOpen, setCustomOpen] = useState(false);
   const open = (kind: Exclude<Sheet, null>) => setSheet(kind);
   useEffect(() => {
     if (!sheet) return;
@@ -37,46 +124,986 @@ export default function Profile() {
     setCustom("");
     setCustomOpen(false);
     setDiet(preferences.diet);
-    setDraft(sheet === "goals" ? preferences.nutritionGoals : sheet === "allergies" ? preferences.allergies : []);
+    setDraft(
+      sheet === "goals"
+        ? preferences.nutritionGoals
+        : sheet === "allergies"
+          ? preferences.allergies
+          : [],
+    );
     setAvoid(sheet === "avoid" ? preferences.avoidedIngredients : []);
   }, [sheet, preferences]);
   const close = () => setSheet(null);
-  const toggle = (value: string) => setDraft(old => old.some(item => norm(item) === norm(value)) ? old.filter(item => norm(item) !== norm(value)) : [...old, value]);
-  const ingredientResults = useMemo(() => searchIngredients(search, ingredients), [search]);
-  const preferenceOptions = useMemo(() => (sheet === "goals" ? goals : allergies).filter(item => norm(item).includes(norm(search))), [sheet, search]);
-  const avoidLabel = (item: AvoidedIngredient) => item.type === "canonical" ? getIngredientById(item.ingredientId)?.name ?? item.ingredientId : item.value;
-  const addAvoid = (id: string) => setAvoid(old => old.some(item => item.type === "canonical" && item.ingredientId === id) ? old.filter(item => item.type !== "canonical" || item.ingredientId !== id) : [...old, { type: "canonical", ingredientId: id }]);
-  const addCustom = () => { const value = custom.trim(); if (!value) return; if (sheet === "diet") setDiet(value); else if (sheet === "avoid") { const exact = searchIngredients(value, ingredients).find(result => norm(result.ingredient.name) === norm(value) || result.ingredient.aliases.some(alias => norm(alias) === norm(value)))?.ingredient; if (!avoid.some(item => norm(avoidLabel(item)) === norm(value))) setAvoid(old => [...old, exact ? { type: "canonical", ingredientId: exact.id } : { type: "custom", value }]); } else setDraft(old => old.some(item => norm(item) === norm(value)) ? old : [...old, value]); setCustom(""); setCustomOpen(false); };
-  const save = () => { if (sheet === "diet") updatePreferences({ diet: diet.trim() || "No preference" }); if (sheet === "goals") updatePreferences({ nutritionGoals: draft }); if (sheet === "allergies") updatePreferences({ allergies: draft }); if (sheet === "avoid") updatePreferences({ avoidedIngredients: avoid }); close(); };
-  const selected = sheet === "avoid" ? avoid.map(item => ({ key: item.type === "canonical" ? item.ingredientId : `custom-${item.value}`, label: avoidLabel(item), remove: () => setAvoid(old => old.filter(entry => entry !== item)) })) : draft.map(item => ({ key: item, label: item, remove: () => toggle(item) }));
+  const toggle = (value: string) =>
+    setDraft((old) =>
+      old.some((item) => norm(item) === norm(value))
+        ? old.filter((item) => norm(item) !== norm(value))
+        : [...old, value],
+    );
+  const ingredientResults = useMemo(
+    () => searchIngredients(search, ingredients),
+    [search],
+  );
+  const preferenceOptions = useMemo(
+    () =>
+      (sheet === "goals" ? goals : allergies).filter((item) =>
+        norm(item).includes(norm(search)),
+      ),
+    [sheet, search],
+  );
+  const avoidLabel = (item: AvoidedIngredient) =>
+    item.type === "canonical"
+      ? (getIngredientById(item.ingredientId)?.name ?? item.ingredientId)
+      : item.value;
+  const addAvoid = (id: string) =>
+    setAvoid((old) =>
+      old.some((item) => item.type === "canonical" && item.ingredientId === id)
+        ? old.filter(
+            (item) => item.type !== "canonical" || item.ingredientId !== id,
+          )
+        : [...old, { type: "canonical", ingredientId: id }],
+    );
+  const addCustom = () => {
+    const value = custom.trim();
+    if (!value) return;
+    if (sheet === "diet") setDiet(value);
+    else if (sheet === "avoid") {
+      const exact = searchIngredients(value, ingredients).find(
+        (result) =>
+          norm(result.ingredient.name) === norm(value) ||
+          result.ingredient.aliases.some(
+            (alias) => norm(alias) === norm(value),
+          ),
+      )?.ingredient;
+      if (!avoid.some((item) => norm(avoidLabel(item)) === norm(value)))
+        setAvoid((old) => [
+          ...old,
+          exact
+            ? { type: "canonical", ingredientId: exact.id }
+            : { type: "custom", value },
+        ]);
+    } else
+      setDraft((old) =>
+        old.some((item) => norm(item) === norm(value)) ? old : [...old, value],
+      );
+    setCustom("");
+    setCustomOpen(false);
+  };
+  const save = () => {
+    if (sheet === "diet")
+      updatePreferences({ diet: diet.trim() || "No preference" });
+    if (sheet === "goals") updatePreferences({ nutritionGoals: draft });
+    if (sheet === "allergies") updatePreferences({ allergies: draft });
+    if (sheet === "avoid") updatePreferences({ avoidedIngredients: avoid });
+    close();
+  };
+  const selected =
+    sheet === "avoid"
+      ? avoid.map((item) => ({
+          key:
+            item.type === "canonical"
+              ? item.ingredientId
+              : `custom-${item.value}`,
+          label: avoidLabel(item),
+          remove: () =>
+            setAvoid((old) => old.filter((entry) => entry !== item)),
+        }))
+      : draft.map((item) => ({
+          key: item,
+          label: item,
+          remove: () => toggle(item),
+        }));
   const copy = sheet ? sheetCopy[sheet] : null;
-  return <View style={styles.page}><ScrollView contentContainerStyle={styles.content}><Text style={styles.title}>Profile</Text><View style={styles.profile}><View style={styles.avatar}><Text>○</Text></View><View><Text style={styles.name}>{isAuthenticated ? user?.name : "Guest"}</Text><Text style={styles.muted}>{isAuthenticated ? user?.email : "Personalize your cooking experience"}</Text></View></View><SectionHeader>Food Preferences</SectionHeader><SettingsRow label="Diet" value={preferences.diet || "No preference"} onPress={() => open("diet")} /><SettingsRow label="Nutrition goals" value={summary(preferences.nutritionGoals)} onPress={() => open("goals")} /><SettingsRow label="Allergies" value={summary(preferences.allergies)} onPress={() => open("allergies")} /><SettingsRow label="Avoid ingredients" value={summary(preferences.avoidedIngredients.map(avoidLabel))} onPress={() => open("avoid")} /><SectionHeader>App Settings</SectionHeader><SettingsRow label="Units" value={preferences.units} onPress={() => updatePreferences({ units: preferences.units === "Metric" ? "Imperial" : "Metric" })} /><View style={styles.setting}><View><Text style={styles.label}>Notifications</Text><Text style={styles.value}>{preferences.notificationsEnabled ? "On" : "Off"}</Text></View><Switch value={preferences.notificationsEnabled} onValueChange={value => updatePreferences({ notificationsEnabled: value })} /></View><SettingsRow label="Appearance" value={preferences.appearance} onPress={() => Alert.alert("Appearance", "This screen will be added later.")} /><SectionHeader>Account</SectionHeader>{isAuthenticated ? <SettingsRow label="Account details" onPress={() => router.push("/account")} /> : <SettingsRow label="Sign in" onPress={() => router.push("/auth/sign-in")} />}</ScrollView>
-    <Modal visible={sheet !== null} transparent animationType="fade" onRequestClose={close}><KeyboardAvoidingView behavior="padding" style={[styles.overlay, styles.bottomAligned]}><Pressable style={StyleSheet.absoluteFill} onPress={close} accessibilityLabel="Close preferences" />{sheet && copy && <View style={styles.sheetCard}><View style={styles.sheetHeader}><View style={styles.titleBlock}><View style={styles.titleLine}><Text style={styles.sheetTitle}>{copy.title}</Text><InfoButton title={`${copy.title} information`} onPress={() => setInfo(sheet)} /></View><Text style={styles.support}>{copy.helper}</Text></View><Pressable style={styles.closeButton} onPress={close} accessibilityRole="button" accessibilityLabel={`Close ${copy.title}`}><Text style={styles.closeIcon}>×</Text></Pressable></View><ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>{sheet === "diet" ? <DietContent diet={diet} setDiet={setDiet} customOpen={customOpen} setCustomOpen={setCustomOpen} custom={custom} setCustom={setCustom} addCustom={addCustom} /> : <><SelectedValues items={selected} />{sheet === "allergies" && <Pressable style={[styles.noneControl, !draft.length && styles.noneControlSelected]} onPress={() => setDraft([])} accessibilityRole="checkbox" accessibilityState={{ checked: !draft.length }}><SelectionIndicator selected={!draft.length} /><Text style={styles.noneText}>I don't have any known food allergies</Text></Pressable>}<SectionLabel>{sheet === "avoid" ? "SEARCH INGREDIENTS" : sheet === "allergies" ? "SEARCH ALLERGIES" : "SEARCH GOALS"}</SectionLabel><View style={styles.searchField}><Text style={styles.searchIcon}>⌕</Text><TextInput value={search} onChangeText={setSearch} placeholder={sheet === "avoid" ? "Search by ingredient name" : sheet === "allergies" ? "Search allergies" : "Search goals"} style={styles.searchInput} accessibilityLabel={`Search ${copy.title}`} /></View>{sheet === "avoid" ? <AvoidOptions results={ingredientResults} searching={Boolean(search)} avoid={avoid} onToggle={addAvoid} /> : <PreferenceOptions kind={sheet} options={preferenceOptions} selected={draft} onToggle={toggle} isWide={width >= 390} searching={Boolean(search)} />}<CustomEntry open={customOpen} setOpen={setCustomOpen} value={custom} setValue={setCustom} onAdd={addCustom} placeholder={sheet === "avoid" ? "e.g. Black garlic sauce" : sheet === "allergies" ? "e.g. Kiwi" : "e.g. Iron rich"} label={sheet === "avoid" ? "Can't find it? Add custom ingredient" : "Add custom value"} /></>}</ScrollView><View style={styles.footer}><PrimaryButton label={sheet === "diet" ? "Save diet" : sheet === "goals" ? "Save goals" : sheet === "allergies" ? "Save allergies" : "Save ingredients"} onPress={save} /></View></View>}</KeyboardAvoidingView></Modal><InfoModal kind={info} onClose={() => setInfo(null)} /></View>;
+  return (
+    <View style={styles.page}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + 35 },
+        ]}
+      >
+        <Text style={styles.title}>Profile</Text>
+        <View style={styles.profile}>
+          <View style={styles.avatar}>
+            <Text>○</Text>
+          </View>
+          <View>
+            <Text style={styles.name}>
+              {isAuthenticated ? user?.name : "Guest"}
+            </Text>
+            <Text style={styles.muted}>
+              {isAuthenticated
+                ? user?.email
+                : "Personalize your cooking experience"}
+            </Text>
+          </View>
+        </View>
+        <SectionHeader>Food Preferences</SectionHeader>
+        <SettingsRow
+          label="Diet"
+          value={preferences.diet || "No preference"}
+          onPress={() => open("diet")}
+        />
+        <SettingsRow
+          label="Nutrition goals"
+          value={summary(preferences.nutritionGoals)}
+          onPress={() => open("goals")}
+        />
+        <SettingsRow
+          label="Allergies"
+          value={summary(preferences.allergies)}
+          onPress={() => open("allergies")}
+        />
+        <SettingsRow
+          label="Avoid ingredients"
+          value={summary(preferences.avoidedIngredients.map(avoidLabel))}
+          onPress={() => open("avoid")}
+        />
+        <SectionHeader>App Settings</SectionHeader>
+        <SettingsRow
+          label="Units"
+          value={preferences.units}
+          onPress={() =>
+            updatePreferences({
+              units: preferences.units === "Metric" ? "Imperial" : "Metric",
+            })
+          }
+        />
+        <View style={styles.setting}>
+          <View>
+            <Text style={styles.label}>Notifications</Text>
+            <Text style={styles.value}>
+              {preferences.notificationsEnabled ? "On" : "Off"}
+            </Text>
+          </View>
+          <Switch
+            value={preferences.notificationsEnabled}
+            onValueChange={(value) =>
+              updatePreferences({ notificationsEnabled: value })
+            }
+          />
+        </View>
+        <SettingsRow
+          label="Appearance"
+          value={preferences.appearance}
+          onPress={() =>
+            Alert.alert("Appearance", "This screen will be added later.")
+          }
+        />
+        <SectionHeader>Account</SectionHeader>
+        {isAuthenticated ? (
+          <SettingsRow
+            label="Account details"
+            onPress={() => router.push("/account")}
+          />
+        ) : (
+          <SettingsRow
+            label="Sign in"
+            onPress={() => router.push("/auth/sign-in")}
+          />
+        )}
+      </ScrollView>
+      <Modal
+        visible={sheet !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={close}
+      >
+        <KeyboardAvoidingView
+          behavior="padding"
+          style={[styles.overlay, styles.bottomAligned]}
+        >
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={close}
+            accessibilityLabel="Close preferences"
+          />
+          {sheet && copy && (
+            <View style={styles.sheetCard}>
+              <View style={styles.sheetHeader}>
+                <View style={styles.titleBlock}>
+                  <View style={styles.titleLine}>
+                    <Text style={styles.sheetTitle}>{copy.title}</Text>
+                    <InfoButton
+                      title={`${copy.title} information`}
+                      onPress={() => setInfo(sheet)}
+                    />
+                  </View>
+                  <Text style={styles.support}>{copy.helper}</Text>
+                </View>
+                <Pressable
+                  style={styles.closeButton}
+                  onPress={close}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Close ${copy.title}`}
+                >
+                  <Text style={styles.closeIcon}>×</Text>
+                </Pressable>
+              </View>
+              <ScrollView
+                style={styles.sheetScroll}
+                contentContainerStyle={styles.sheetContent}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                {sheet === "diet" ? (
+                  <DietContent
+                    diet={diet}
+                    setDiet={setDiet}
+                    customOpen={customOpen}
+                    setCustomOpen={setCustomOpen}
+                    custom={custom}
+                    setCustom={setCustom}
+                    addCustom={addCustom}
+                  />
+                ) : (
+                  <>
+                    <SelectedValues items={selected} />
+                    {sheet === "allergies" && (
+                      <Pressable
+                        style={[
+                          styles.noneControl,
+                          !draft.length && styles.noneControlSelected,
+                        ]}
+                        onPress={() => setDraft([])}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: !draft.length }}
+                      >
+                        <SelectionIndicator selected={!draft.length} />
+                        <Text style={styles.noneText}>
+                          I don't have any known food allergies
+                        </Text>
+                      </Pressable>
+                    )}
+                    <SectionLabel>
+                      {sheet === "avoid"
+                        ? "SEARCH INGREDIENTS"
+                        : sheet === "allergies"
+                          ? "SEARCH ALLERGIES"
+                          : "SEARCH GOALS"}
+                    </SectionLabel>
+                    <View style={styles.searchField}>
+                      <Text style={styles.searchIcon}>⌕</Text>
+                      <TextInput
+                        value={search}
+                        onChangeText={setSearch}
+                        placeholder={
+                          sheet === "avoid"
+                            ? "Search by ingredient name"
+                            : sheet === "allergies"
+                              ? "Search allergies"
+                              : "Search goals"
+                        }
+                        style={styles.searchInput}
+                        accessibilityLabel={`Search ${copy.title}`}
+                      />
+                    </View>
+                    {sheet === "avoid" ? (
+                      <AvoidOptions
+                        results={ingredientResults}
+                        searching={Boolean(search)}
+                        avoid={avoid}
+                        onToggle={addAvoid}
+                      />
+                    ) : (
+                      <PreferenceOptions
+                        kind={sheet}
+                        options={preferenceOptions}
+                        selected={draft}
+                        onToggle={toggle}
+                        isWide={width >= 390}
+                        searching={Boolean(search)}
+                      />
+                    )}
+                    <CustomEntry
+                      open={customOpen}
+                      setOpen={setCustomOpen}
+                      value={custom}
+                      setValue={setCustom}
+                      onAdd={addCustom}
+                      placeholder={
+                        sheet === "avoid"
+                          ? "e.g. Black garlic sauce"
+                          : sheet === "allergies"
+                            ? "e.g. Kiwi"
+                            : "e.g. Iron rich"
+                      }
+                      label={
+                        sheet === "avoid"
+                          ? "Can't find it? Add custom ingredient"
+                          : "Add custom value"
+                      }
+                    />
+                  </>
+                )}
+              </ScrollView>
+              <View style={styles.footer}>
+                <PrimaryButton
+                  label={
+                    sheet === "diet"
+                      ? "Save diet"
+                      : sheet === "goals"
+                        ? "Save goals"
+                        : sheet === "allergies"
+                          ? "Save allergies"
+                          : "Save ingredients"
+                  }
+                  onPress={save}
+                />
+              </View>
+            </View>
+          )}
+        </KeyboardAvoidingView>
+      </Modal>
+      <InfoModal kind={info} onClose={() => setInfo(null)} />
+    </View>
+  );
 }
 
-function DietContent({ diet, setDiet, customOpen, setCustomOpen, custom, setCustom, addCustom }: { diet: string; setDiet: (value: string) => void; customOpen: boolean; setCustomOpen: (value: boolean) => void; custom: string; setCustom: (value: string) => void; addCustom: () => void }) { const options = dietOptions.some(([name]) => name === diet) ? dietOptions : [[diet, "Custom eating preference"] as const, ...dietOptions]; return <View style={styles.optionStack}>{options.map(([name, description]) => <Pressable key={name} style={[styles.dietCard, diet === name && styles.selectedCard]} onPress={() => setDiet(name)} accessibilityRole="radio" accessibilityState={{ selected: diet === name }}><View style={styles.optionCopy}><Text style={styles.optionTitle}>{name}</Text><Text style={styles.optionDescription}>{description}</Text></View><SelectionIndicator selected={diet === name} /></Pressable>)}<CustomEntry open={customOpen} setOpen={setCustomOpen} value={custom} setValue={setCustom} onAdd={addCustom} placeholder="e.g. Flexitarian" label="Add another diet preference" /></View>; }
-function SelectedValues({ items }: { items: { key: string; label: string; remove: () => void }[] }) { return <View style={styles.selectedSection}><SectionLabel>SELECTED</SectionLabel>{items.length ? <View style={styles.chips}>{items.map(item => <Pressable key={item.key} style={styles.selectedChip} onPress={item.remove} accessibilityRole="button" accessibilityLabel={`Remove ${item.label}`}><Text style={styles.selectedChipText}>{item.label}</Text><Text style={styles.removeMark}>×</Text></Pressable>)}</View> : <Text style={styles.empty}>No selections yet</Text>}</View>; }
-function PreferenceOptions({ kind, options, selected, onToggle, isWide, searching }: { kind: "goals" | "allergies"; options: string[]; selected: string[]; onToggle: (value: string) => void; isWide: boolean; searching: boolean }) { const visible = kind === "allergies" && !searching ? commonAllergies : options; const label = searching ? "SEARCH RESULTS" : kind === "allergies" ? "COMMON ALLERGENS" : "POPULAR GOALS"; return <View style={styles.optionSection}><SectionLabel>{label}</SectionLabel><View style={styles.preferenceGrid}>{visible.map(option => { const active = selected.some(item => norm(item) === norm(option)); return <Pressable key={option} style={[styles.preferenceOption, isWide && styles.twoColumnOption, active && styles.selectedCard]} onPress={() => onToggle(option)} accessibilityRole="checkbox" accessibilityState={{ checked: active }}><Text style={styles.preferenceText}>{option}</Text><SelectionIndicator selected={active} compact /></Pressable>; })}</View>{!visible.length && <Text style={styles.empty}>No matching options</Text>}</View>; }
-function AvoidOptions({ results, searching, avoid, onToggle }: { results: ReturnType<typeof searchIngredients>; searching: boolean; avoid: AvoidedIngredient[]; onToggle: (id: string) => void }) { const categoryName = (id: string) => ingredientCategories.find(category => category.id === id)?.name ?? "Ingredient"; return <View style={styles.optionSection}><SectionLabel>{searching ? "SEARCH RESULTS" : "SUGGESTIONS"}</SectionLabel><View style={styles.rowStack}>{results.map(result => { const active = avoid.some(item => item.type === "canonical" && item.ingredientId === result.ingredient.id); return <Pressable key={result.ingredient.id} style={[styles.ingredientResult, active && styles.selectedCard]} onPress={() => onToggle(result.ingredient.id)} accessibilityRole="checkbox" accessibilityState={{ checked: active }}><View><Text style={styles.optionTitle}>{result.ingredient.name}</Text><Text style={styles.optionDescription}>{categoryName(result.ingredient.categoryId)}</Text></View><Text style={styles.addMark}>{active ? "✓" : "+"}</Text></Pressable>; })}</View>{!results.length && <Text style={styles.empty}>No matching ingredients</Text>}</View>; }
-function CustomEntry({ open, setOpen, value, setValue, onAdd, placeholder, label }: { open: boolean; setOpen: (value: boolean) => void; value: string; setValue: (value: string) => void; onAdd: () => void; placeholder: string; label: string }) { return open ? <View style={styles.custom}><TextInput value={value} onChangeText={setValue} placeholder={placeholder} style={styles.plainInput} autoFocus /><View style={styles.actions}><SecondaryButton label="Cancel" onPress={() => { setValue(""); setOpen(false); }} style={styles.actionButton} /><PrimaryButton label="Add" onPress={onAdd} style={styles.actionButton} /></View></View> : <Pressable style={styles.customLink} onPress={() => setOpen(true)} accessibilityRole="button"><Text style={styles.customLinkText}>+ {label}</Text></Pressable>; }
-function SelectionIndicator({ selected, compact = false }: { selected: boolean; compact?: boolean }) { return <View style={[styles.selectionIndicator, compact && styles.compactIndicator, selected && styles.selectionIndicatorSelected]}>{selected && <Text style={[styles.checkMark, compact && styles.compactCheck]}>✓</Text>}</View>; }
-function InfoButton({ title, onPress }: { title: string; onPress: () => void }) { return <Pressable style={styles.infoButton} onPress={onPress} accessibilityRole="button" accessibilityLabel={title}><Text style={styles.infoGlyph}>i</Text></Pressable>; }
-function InfoModal({ kind, onClose }: { kind: InfoKind; onClose: () => void }) { return <Modal visible={kind !== null} transparent animationType="fade" onRequestClose={onClose}>{kind && <View style={styles.infoOverlay}><Pressable style={StyleSheet.absoluteFill} onPress={onClose} /><View style={styles.infoCard}><Text style={styles.infoTitle}>About {sheetCopy[kind].title.toLocaleLowerCase("en-US")}</Text><Text style={styles.infoText}>{sheetCopy[kind].info}</Text><PrimaryButton label="Got it" onPress={onClose} /></View></View>}</Modal>; }
-function SectionLabel({ children }: { children: string }) { return <Text style={styles.sectionLabel}>{children}</Text>; }
-function SettingsRow({ label, value, onPress }: { label: string; value?: string; onPress: () => void }) { return <Pressable onPress={onPress} style={styles.setting}><View><Text style={styles.label}>{label}</Text>{value && <Text style={styles.value}>{value}</Text>}</View><Text style={styles.chevron}>›</Text></Pressable>; }
+function DietContent({
+  diet,
+  setDiet,
+  customOpen,
+  setCustomOpen,
+  custom,
+  setCustom,
+  addCustom,
+}: {
+  diet: string;
+  setDiet: (value: string) => void;
+  customOpen: boolean;
+  setCustomOpen: (value: boolean) => void;
+  custom: string;
+  setCustom: (value: string) => void;
+  addCustom: () => void;
+}) {
+  const options = dietOptions.some(([name]) => name === diet)
+    ? dietOptions
+    : [[diet, "Custom eating preference"] as const, ...dietOptions];
+  return (
+    <View style={styles.optionStack}>
+      {options.map(([name, description]) => (
+        <Pressable
+          key={name}
+          style={[styles.dietCard, diet === name && styles.selectedCard]}
+          onPress={() => setDiet(name)}
+          accessibilityRole="radio"
+          accessibilityState={{ selected: diet === name }}
+        >
+          <View style={styles.optionCopy}>
+            <Text style={styles.optionTitle}>{name}</Text>
+            <Text style={styles.optionDescription}>{description}</Text>
+          </View>
+          <SelectionIndicator selected={diet === name} />
+        </Pressable>
+      ))}
+      <CustomEntry
+        open={customOpen}
+        setOpen={setCustomOpen}
+        value={custom}
+        setValue={setCustom}
+        onAdd={addCustom}
+        placeholder="e.g. Flexitarian"
+        label="Add another diet preference"
+      />
+    </View>
+  );
+}
+function SelectedValues({
+  items,
+}: {
+  items: { key: string; label: string; remove: () => void }[];
+}) {
+  return (
+    <View style={styles.selectedSection}>
+      <SectionLabel>SELECTED</SectionLabel>
+      {items.length ? (
+        <View style={styles.chips}>
+          {items.map((item) => (
+            <Pressable
+              key={item.key}
+              style={styles.selectedChip}
+              onPress={item.remove}
+              accessibilityRole="button"
+              accessibilityLabel={`Remove ${item.label}`}
+            >
+              <Text style={styles.selectedChipText}>{item.label}</Text>
+              <Text style={styles.removeMark}>×</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : (
+        <Text style={styles.empty}>No selections yet</Text>
+      )}
+    </View>
+  );
+}
+function PreferenceOptions({
+  kind,
+  options,
+  selected,
+  onToggle,
+  isWide,
+  searching,
+}: {
+  kind: "goals" | "allergies";
+  options: string[];
+  selected: string[];
+  onToggle: (value: string) => void;
+  isWide: boolean;
+  searching: boolean;
+}) {
+  const visible =
+    kind === "allergies" && !searching ? commonAllergies : options;
+  const label = searching
+    ? "SEARCH RESULTS"
+    : kind === "allergies"
+      ? "COMMON ALLERGENS"
+      : "POPULAR GOALS";
+  return (
+    <View style={styles.optionSection}>
+      <SectionLabel>{label}</SectionLabel>
+      <View style={styles.preferenceGrid}>
+        {visible.map((option) => {
+          const active = selected.some((item) => norm(item) === norm(option));
+          return (
+            <Pressable
+              key={option}
+              style={[
+                styles.preferenceOption,
+                isWide && styles.twoColumnOption,
+                active && styles.selectedCard,
+              ]}
+              onPress={() => onToggle(option)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: active }}
+            >
+              <Text style={styles.preferenceText}>{option}</Text>
+              <SelectionIndicator selected={active} compact />
+            </Pressable>
+          );
+        })}
+      </View>
+      {!visible.length && <Text style={styles.empty}>No matching options</Text>}
+    </View>
+  );
+}
+function AvoidOptions({
+  results,
+  searching,
+  avoid,
+  onToggle,
+}: {
+  results: ReturnType<typeof searchIngredients>;
+  searching: boolean;
+  avoid: AvoidedIngredient[];
+  onToggle: (id: string) => void;
+}) {
+  const categoryName = (id: string) =>
+    ingredientCategories.find((category) => category.id === id)?.name ??
+    "Ingredient";
+  return (
+    <View style={styles.optionSection}>
+      <SectionLabel>
+        {searching ? "SEARCH RESULTS" : "SUGGESTIONS"}
+      </SectionLabel>
+      <View style={styles.rowStack}>
+        {results.map((result) => {
+          const active = avoid.some(
+            (item) =>
+              item.type === "canonical" &&
+              item.ingredientId === result.ingredient.id,
+          );
+          return (
+            <Pressable
+              key={result.ingredient.id}
+              style={[styles.ingredientResult, active && styles.selectedCard]}
+              onPress={() => onToggle(result.ingredient.id)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: active }}
+            >
+              <View>
+                <Text style={styles.optionTitle}>{result.ingredient.name}</Text>
+                <Text style={styles.optionDescription}>
+                  {categoryName(result.ingredient.categoryId)}
+                </Text>
+              </View>
+              <Text style={styles.addMark}>{active ? "✓" : "+"}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      {!results.length && (
+        <Text style={styles.empty}>No matching ingredients</Text>
+      )}
+    </View>
+  );
+}
+function CustomEntry({
+  open,
+  setOpen,
+  value,
+  setValue,
+  onAdd,
+  placeholder,
+  label,
+}: {
+  open: boolean;
+  setOpen: (value: boolean) => void;
+  value: string;
+  setValue: (value: string) => void;
+  onAdd: () => void;
+  placeholder: string;
+  label: string;
+}) {
+  return open ? (
+    <View style={styles.custom}>
+      <TextInput
+        value={value}
+        onChangeText={setValue}
+        placeholder={placeholder}
+        style={styles.plainInput}
+        autoFocus
+      />
+      <View style={styles.actions}>
+        <SecondaryButton
+          label="Cancel"
+          onPress={() => {
+            setValue("");
+            setOpen(false);
+          }}
+          style={styles.actionButton}
+        />
+        <PrimaryButton
+          label="Add"
+          onPress={onAdd}
+          style={styles.actionButton}
+        />
+      </View>
+    </View>
+  ) : (
+    <Pressable
+      style={styles.customLink}
+      onPress={() => setOpen(true)}
+      accessibilityRole="button"
+    >
+      <Text style={styles.customLinkText}>+ {label}</Text>
+    </Pressable>
+  );
+}
+function SelectionIndicator({
+  selected,
+  compact = false,
+}: {
+  selected: boolean;
+  compact?: boolean;
+}) {
+  return (
+    <View
+      style={[
+        styles.selectionIndicator,
+        compact && styles.compactIndicator,
+        selected && styles.selectionIndicatorSelected,
+      ]}
+    >
+      {selected && (
+        <Text style={[styles.checkMark, compact && styles.compactCheck]}>
+          ✓
+        </Text>
+      )}
+    </View>
+  );
+}
+function InfoButton({
+  title,
+  onPress,
+}: {
+  title: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      style={styles.infoButton}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+    >
+      <Text style={styles.infoGlyph}>i</Text>
+    </Pressable>
+  );
+}
+function InfoModal({ kind, onClose }: { kind: InfoKind; onClose: () => void }) {
+  return (
+    <Modal
+      visible={kind !== null}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      {kind && (
+        <View style={styles.infoOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+          <View style={styles.infoCard}>
+            <Text style={styles.infoTitle}>
+              About {sheetCopy[kind].title.toLocaleLowerCase("en-US")}
+            </Text>
+            <Text style={styles.infoText}>{sheetCopy[kind].info}</Text>
+            <PrimaryButton label="Got it" onPress={onClose} />
+          </View>
+        </View>
+      )}
+    </Modal>
+  );
+}
+function SectionLabel({ children }: { children: string }) {
+  return <Text style={styles.sectionLabel}>{children}</Text>;
+}
+function SettingsRow({
+  label,
+  value,
+  onPress,
+}: {
+  label: string;
+  value?: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable onPress={onPress} style={styles.setting}>
+      <View>
+        <Text style={styles.label}>{label}</Text>
+        {value && <Text style={styles.value}>{value}</Text>}
+      </View>
+      <Text style={styles.chevron}>›</Text>
+    </Pressable>
+  );
+}
 
 const baseStyles = StyleSheet.create({
-  page:{flex:1,backgroundColor:"white"},content:{padding:20,paddingTop:58,paddingBottom:32,gap:10},title:{fontSize:28,fontWeight:"700"},profile:{flexDirection:"row",alignItems:"center",gap:12,backgroundColor:colors.surface,borderRadius:12,padding:16,marginBottom:8},avatar:{width:44,height:44,borderRadius:22,backgroundColor:colors.placeholder,alignItems:"center",justifyContent:"center"},name:{fontSize:17,fontWeight:"700"},muted:{fontSize:14,color:colors.textSecondary,marginTop:3},setting:{minHeight:58,borderBottomWidth:1,borderColor:"#eee",flexDirection:"row",justifyContent:"space-between",alignItems:"center"},label:{fontSize:16,fontWeight:"600"},value:{fontSize:13,color:colors.textSecondary,marginTop:3},chevron:{fontSize:24,color:colors.textSecondary},
-  overlay:{flex:1,backgroundColor:"rgba(0,0,0,.36)",paddingHorizontal:16},bottomAligned:{justifyContent:"flex-end"},sheetCard:{width:"100%",height:"82%",maxWidth:520,alignSelf:"center",backgroundColor:"white",overflow:"hidden",borderTopLeftRadius:24,borderTopRightRadius:24,borderCurve:"continuous"},sheetHeader:{flexDirection:"row",gap:12,paddingHorizontal:24,paddingTop:24,paddingBottom:20,borderBottomWidth:1,borderColor:"#EEEEEE"},titleBlock:{flex:1,gap:8},titleLine:{flexDirection:"row",alignItems:"center",gap:4},sheetTitle:{fontSize:23,lineHeight:28,fontWeight:"700",color:colors.textPrimary},support:{fontSize:15,lineHeight:21,color:colors.textSecondary},closeButton:{width:44,height:44,marginTop:-8,marginRight:-8,alignItems:"center",justifyContent:"center"},closeIcon:{fontSize:30,lineHeight:34,color:colors.textSecondary},infoButton:{width:40,height:40,alignItems:"center",justifyContent:"center"},infoGlyph:{width:21,height:21,borderWidth:1.5,borderColor:colors.textSecondary,borderRadius:11,color:colors.textSecondary,fontSize:14,fontWeight:"700",textAlign:"center",lineHeight:19},sheetScroll:{flex:1},sheetContent:{paddingHorizontal:24,paddingTop:24,paddingBottom:32,gap:24},footer:{paddingHorizontal:24,paddingTop:14,paddingBottom:20,borderTopWidth:1,borderColor:"#EEEEEE",backgroundColor:"white"},
-  sectionLabel:{fontSize:12,lineHeight:16,fontWeight:"700",letterSpacing:.7,color:colors.textSecondary},selectedSection:{gap:12},chips:{flexDirection:"row",flexWrap:"wrap",gap:8},selectedChip:{minHeight:38,flexDirection:"row",alignItems:"center",gap:8,borderRadius:20,paddingHorizontal:12,backgroundColor:"#EAEAEA",borderWidth:1,borderColor:"#BDBDBD"},selectedChipText:{fontSize:14,color:colors.textPrimary},removeMark:{fontSize:20,lineHeight:20,color:colors.textSecondary},empty:{fontSize:14,lineHeight:20,color:colors.textSecondary,marginTop:-4},searchField:{height:52,flexDirection:"row",alignItems:"center",gap:8,borderWidth:1,borderColor:colors.border,borderRadius:12,paddingHorizontal:14},searchIcon:{fontSize:23,color:colors.textSecondary,lineHeight:24},searchInput:{flex:1,height:"100%",fontSize:16,color:colors.textPrimary},optionSection:{gap:12},optionStack:{gap:12},dietCard:{minHeight:72,flexDirection:"row",alignItems:"center",justifyContent:"space-between",gap:16,borderWidth:1,borderColor:colors.border,borderRadius:14,paddingHorizontal:16,paddingVertical:12},selectedCard:{borderColor:colors.textPrimary,borderWidth:2,backgroundColor:"#F3F3F3"},optionCopy:{flex:1,gap:4},optionTitle:{fontSize:16,lineHeight:21,fontWeight:"600",color:colors.textPrimary},optionDescription:{fontSize:13,lineHeight:18,color:colors.textSecondary},selectionIndicator:{width:26,height:26,borderRadius:13,borderWidth:2,borderColor:"#888",alignItems:"center",justifyContent:"center"},selectionIndicatorSelected:{borderColor:colors.textPrimary,backgroundColor:colors.textPrimary},checkMark:{color:"white",fontSize:16,fontWeight:"700",lineHeight:18},compactIndicator:{width:22,height:22,borderRadius:11},compactCheck:{fontSize:13,lineHeight:16},preferenceGrid:{flexDirection:"row",flexWrap:"wrap",gap:10},preferenceOption:{minHeight:48,width:"100%",flexDirection:"row",alignItems:"center",justifyContent:"space-between",gap:12,borderWidth:1,borderColor:colors.border,borderRadius:12,paddingHorizontal:14,paddingVertical:10},twoColumnOption:{width:"48.5%"},preferenceText:{flex:1,fontSize:15,lineHeight:20,fontWeight:"600",color:colors.textPrimary},noneControl:{minHeight:54,flexDirection:"row",alignItems:"center",gap:12,borderWidth:1,borderColor:colors.border,borderRadius:12,paddingHorizontal:14,paddingVertical:10},noneControlSelected:{borderColor:colors.textPrimary,backgroundColor:"#F3F3F3"},noneText:{flex:1,fontSize:15,lineHeight:20,fontWeight:"600",color:colors.textPrimary},rowStack:{gap:10},ingredientResult:{minHeight:64,flexDirection:"row",alignItems:"center",justifyContent:"space-between",gap:12,borderWidth:1,borderColor:colors.border,borderRadius:12,paddingHorizontal:16,paddingVertical:10},addMark:{fontSize:25,lineHeight:28,fontWeight:"400",color:colors.textPrimary},customLink:{minHeight:48,justifyContent:"center"},customLinkText:{fontSize:15,fontWeight:"600",color:colors.textPrimary},custom:{gap:10},plainInput:{height:52,borderWidth:1,borderColor:colors.border,borderRadius:12,paddingHorizontal:14,fontSize:16},actions:{flexDirection:"row",gap:10},actionButton:{flex:1},
-  infoOverlay:{flex:1,alignItems:"center",justifyContent:"center",padding:20,backgroundColor:"rgba(0,0,0,.36)"},infoCard:{width:"100%",maxWidth:420,gap:16,backgroundColor:"white",borderRadius:20,padding:24},infoTitle:{fontSize:20,lineHeight:25,fontWeight:"700",color:colors.textPrimary},infoText:{fontSize:15,lineHeight:22,color:colors.textSecondary},
+  page: { flex: 1, backgroundColor: "white" },
+  content: { padding: 20, paddingBottom: 32, gap: 10 },
+  title: { fontSize: 28, fontWeight: "700" },
+  profile: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 8,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.placeholder,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  name: { fontSize: 17, fontWeight: "700" },
+  muted: { fontSize: 14, color: colors.textSecondary, marginTop: 3 },
+  setting: {
+    minHeight: 58,
+    borderBottomWidth: 1,
+    borderColor: "#eee",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  label: { fontSize: 16, fontWeight: "600" },
+  value: { fontSize: 13, color: colors.textSecondary, marginTop: 3 },
+  chevron: { fontSize: 24, color: colors.textSecondary },
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,.36)",
+    paddingHorizontal: 16,
+  },
+  bottomAligned: { justifyContent: "flex-end" },
+  sheetCard: {
+    width: "100%",
+    height: "82%",
+    maxWidth: 520,
+    alignSelf: "center",
+    backgroundColor: "white",
+    overflow: "hidden",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderCurve: "continuous",
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    gap: 12,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderColor: "#EEEEEE",
+  },
+  titleBlock: { flex: 1, gap: 8 },
+  titleLine: { flexDirection: "row", alignItems: "center", gap: 4 },
+  sheetTitle: {
+    fontSize: 23,
+    lineHeight: 28,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+  support: { fontSize: 15, lineHeight: 21, color: colors.textSecondary },
+  closeButton: {
+    width: 44,
+    height: 44,
+    marginTop: -8,
+    marginRight: -8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  closeIcon: { fontSize: 30, lineHeight: 34, color: colors.textSecondary },
+  infoButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  infoGlyph: {
+    width: 21,
+    height: 21,
+    borderWidth: 1.5,
+    borderColor: colors.textSecondary,
+    borderRadius: 11,
+    color: colors.textSecondary,
+    fontSize: 14,
+    fontWeight: "700",
+    textAlign: "center",
+    lineHeight: 19,
+  },
+  sheetScroll: { flex: 1 },
+  sheetContent: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 32,
+    gap: 24,
+  },
+  footer: {
+    paddingHorizontal: 24,
+    paddingTop: 14,
+    paddingBottom: 20,
+    borderTopWidth: 1,
+    borderColor: "#EEEEEE",
+    backgroundColor: "white",
+  },
+  sectionLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "700",
+    letterSpacing: 0.7,
+    color: colors.textSecondary,
+  },
+  selectedSection: { gap: 12 },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  selectedChip: {
+    minHeight: 38,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    backgroundColor: "#EAEAEA",
+    borderWidth: 1,
+    borderColor: "#BDBDBD",
+  },
+  selectedChipText: { fontSize: 14, color: colors.textPrimary },
+  removeMark: { fontSize: 20, lineHeight: 20, color: colors.textSecondary },
+  empty: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.textSecondary,
+    marginTop: -4,
+  },
+  searchField: {
+    height: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+  },
+  searchIcon: { fontSize: 23, color: colors.textSecondary, lineHeight: 24 },
+  searchInput: {
+    flex: 1,
+    height: "100%",
+    fontSize: 16,
+    color: colors.textPrimary,
+  },
+  optionSection: { gap: 12 },
+  optionStack: { gap: 12 },
+  dietCard: {
+    minHeight: 72,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  selectedCard: {
+    borderColor: colors.textPrimary,
+    borderWidth: 2,
+    backgroundColor: "#F3F3F3",
+  },
+  optionCopy: { flex: 1, gap: 4 },
+  optionTitle: {
+    fontSize: 16,
+    lineHeight: 21,
+    fontWeight: "600",
+    color: colors.textPrimary,
+  },
+  optionDescription: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.textSecondary,
+  },
+  selectionIndicator: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2,
+    borderColor: "#888",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  selectionIndicatorSelected: {
+    borderColor: colors.textPrimary,
+    backgroundColor: colors.textPrimary,
+  },
+  checkMark: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "700",
+    lineHeight: 18,
+  },
+  compactIndicator: { width: 22, height: 22, borderRadius: 11 },
+  compactCheck: { fontSize: 13, lineHeight: 16 },
+  preferenceGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  preferenceOption: {
+    minHeight: 48,
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  twoColumnOption: { width: "48.5%" },
+  preferenceText: {
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: "600",
+    color: colors.textPrimary,
+  },
+  noneControl: {
+    minHeight: 54,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  noneControlSelected: {
+    borderColor: colors.textPrimary,
+    backgroundColor: "#F3F3F3",
+  },
+  noneText: {
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: "600",
+    color: colors.textPrimary,
+  },
+  rowStack: { gap: 10 },
+  ingredientResult: {
+    minHeight: 64,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  addMark: {
+    fontSize: 25,
+    lineHeight: 28,
+    fontWeight: "400",
+    color: colors.textPrimary,
+  },
+  customLink: { minHeight: 48, justifyContent: "center" },
+  customLinkText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: colors.textPrimary,
+  },
+  custom: { gap: 10 },
+  plainInput: {
+    height: 52,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    fontSize: 16,
+  },
+  actions: { flexDirection: "row", gap: 10 },
+  actionButton: { flex: 1 },
+  infoOverlay: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+    backgroundColor: "rgba(0,0,0,.36)",
+  },
+  infoCard: {
+    width: "100%",
+    maxWidth: 420,
+    gap: 16,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 24,
+  },
+  infoTitle: {
+    fontSize: 20,
+    lineHeight: 25,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+  infoText: { fontSize: 15, lineHeight: 22, color: colors.textSecondary },
 });
 
 // All four preference variants share this geometry. Keep the card in normal
 // flex flow: the overlay centers it, and only the inner ScrollView scrolls.
-const centeredOverlay: ViewStyle = { justifyContent: "center", alignItems: "center", paddingVertical: 16 };
+const centeredOverlay: ViewStyle = {
+  justifyContent: "center",
+  alignItems: "center",
+  paddingVertical: 16,
+};
 const centeredAlignment: ViewStyle = { justifyContent: "center" };
-const responsiveCard: ViewStyle = { height: "88%", maxHeight: "88%", borderRadius: 24, overflow: "hidden" };
+const responsiveCard: ViewStyle = {
+  height: "88%",
+  maxHeight: "88%",
+  borderRadius: 24,
+  overflow: "hidden",
+};
 const resetCloseOffset: ViewStyle = { marginTop: 0, marginRight: 0 };
 
 const styles = {

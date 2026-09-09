@@ -1,5 +1,64 @@
 import { Ingredient } from "./ingredient.types";
 import { normalizeIngredientText } from "./ingredient-normalizer";
-export type IngredientSearchResult = { ingredient: Ingredient; score: number; matchedTerm: string };
-const matchesWordPrefix = (term: string, query: string) => term.split(" ").some((word) => word.startsWith(query));
-export function searchIngredients(query: string, ingredients: Ingredient[], limit = 12): IngredientSearchResult[] { const q = normalizeIngredientText(query); if (!q) return ingredients.filter(i=>i.pantryCommon).slice(0,limit).map(ingredient=>({ingredient,score:0,matchedTerm:""})); const result: IngredientSearchResult[]=[]; for(const ingredient of ingredients){const canonical=normalizeIngredientText(ingredient.name); let score=canonical===q?100:canonical.startsWith(q)?90:matchesWordPrefix(canonical,q)?70:0; let matchedTerm=ingredient.name; for(const alias of ingredient.aliases){const term=normalizeIngredientText(alias);const s=term===q?85:term.startsWith(q)?80:matchesWordPrefix(term,q)?60:0;if(s>score){score=s;matchedTerm=alias;}} for(const keyword of ingredient.searchKeywords){const term=normalizeIngredientText(keyword);const s=term.startsWith(q)?65:matchesWordPrefix(term,q)?50:0;if(s>score){score=s;matchedTerm=keyword;}} if(score) result.push({ingredient,score,matchedTerm});} return result.sort((a,b)=>b.score-a.score||a.ingredient.name.localeCompare(b.ingredient.name)).slice(0,limit); }
+export type IngredientSearchResult = {
+  ingredient: Ingredient;
+  score: number;
+  matchedTerm: string;
+};
+const matchesWordPrefix = (term: string, query: string) =>
+  term.split(" ").some((word) => word.startsWith(query));
+export function searchIngredients(
+  query: string,
+  ingredients: Ingredient[],
+  limit = 12,
+): IngredientSearchResult[] {
+  const q = normalizeIngredientText(query);
+  if (!q)
+    return ingredients
+      .filter((i) => i.pantryCommon)
+      .slice(0, limit)
+      .map((ingredient) => ({ ingredient, score: 0, matchedTerm: "" }));
+  const result: IngredientSearchResult[] = [];
+  for (const ingredient of ingredients) {
+    const canonical = normalizeIngredientText(ingredient.name);
+    let score =
+      canonical === q
+        ? 100
+        : canonical.startsWith(q)
+          ? 90
+          : matchesWordPrefix(canonical, q)
+            ? 70
+            : 0;
+    let matchedTerm = ingredient.name;
+    for (const alias of ingredient.aliases) {
+      const term = normalizeIngredientText(alias);
+      const s =
+        term === q
+          ? 85
+          : term.startsWith(q)
+            ? 80
+            : matchesWordPrefix(term, q)
+              ? 60
+              : 0;
+      if (s > score) {
+        score = s;
+        matchedTerm = alias;
+      }
+    }
+    for (const keyword of ingredient.searchKeywords) {
+      const term = normalizeIngredientText(keyword);
+      const s = term.startsWith(q) ? 65 : matchesWordPrefix(term, q) ? 50 : 0;
+      if (s > score) {
+        score = s;
+        matchedTerm = keyword;
+      }
+    }
+    if (score) result.push({ ingredient, score, matchedTerm });
+  }
+  return result
+    .sort(
+      (a, b) =>
+        b.score - a.score || a.ingredient.name.localeCompare(b.ingredient.name),
+    )
+    .slice(0, limit);
+}

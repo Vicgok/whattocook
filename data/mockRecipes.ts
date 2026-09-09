@@ -9,13 +9,48 @@ export const recipes: Recipe[] = [
     calories: 420,
     protein: 42,
     ingredients: [
-      { id: "chicken-egg-rice-bowl-chicken", recipeId: "chicken-egg-rice-bowl", ingredientId: "chicken", isOptional: false },
-      { id: "chicken-egg-rice-bowl-rice", recipeId: "chicken-egg-rice-bowl", ingredientId: "rice", isOptional: false },
-      { id: "chicken-egg-rice-bowl-tomato", recipeId: "chicken-egg-rice-bowl", ingredientId: "tomato", isOptional: false },
-      { id: "chicken-egg-rice-bowl-onion", recipeId: "chicken-egg-rice-bowl", ingredientId: "onion", isOptional: false },
-      { id: "chicken-egg-rice-bowl-egg", recipeId: "chicken-egg-rice-bowl", ingredientId: "egg", isOptional: false },
-      { id: "chicken-egg-rice-bowl-greek-yogurt", recipeId: "chicken-egg-rice-bowl", ingredientId: "greek-yogurt", isOptional: false },
-      { id: "chicken-egg-rice-bowl-cilantro", recipeId: "chicken-egg-rice-bowl", ingredientId: "cilantro", isOptional: true },
+      {
+        id: "chicken-egg-rice-bowl-chicken",
+        recipeId: "chicken-egg-rice-bowl",
+        ingredientId: "chicken",
+        isOptional: false,
+      },
+      {
+        id: "chicken-egg-rice-bowl-rice",
+        recipeId: "chicken-egg-rice-bowl",
+        ingredientId: "rice",
+        isOptional: false,
+      },
+      {
+        id: "chicken-egg-rice-bowl-tomato",
+        recipeId: "chicken-egg-rice-bowl",
+        ingredientId: "tomato",
+        isOptional: false,
+      },
+      {
+        id: "chicken-egg-rice-bowl-onion",
+        recipeId: "chicken-egg-rice-bowl",
+        ingredientId: "onion",
+        isOptional: false,
+      },
+      {
+        id: "chicken-egg-rice-bowl-egg",
+        recipeId: "chicken-egg-rice-bowl",
+        ingredientId: "egg",
+        isOptional: false,
+      },
+      {
+        id: "chicken-egg-rice-bowl-greek-yogurt",
+        recipeId: "chicken-egg-rice-bowl",
+        ingredientId: "greek-yogurt",
+        isOptional: false,
+      },
+      {
+        id: "chicken-egg-rice-bowl-cilantro",
+        recipeId: "chicken-egg-rice-bowl",
+        ingredientId: "cilantro",
+        isOptional: true,
+      },
     ],
     steps: [
       {
@@ -58,13 +93,48 @@ export const recipes: Recipe[] = [
     calories: 480,
     protein: 39,
     ingredients: [
-      { id: "spicy-chicken-fried-rice-chicken", recipeId: "spicy-chicken-fried-rice", ingredientId: "chicken", isOptional: false },
-      { id: "spicy-chicken-fried-rice-rice", recipeId: "spicy-chicken-fried-rice", ingredientId: "rice", isOptional: false },
-      { id: "spicy-chicken-fried-rice-onion", recipeId: "spicy-chicken-fried-rice", ingredientId: "onion", isOptional: false },
-      { id: "spicy-chicken-fried-rice-egg", recipeId: "spicy-chicken-fried-rice", ingredientId: "egg", isOptional: false },
-      { id: "spicy-chicken-fried-rice-bell-pepper", recipeId: "spicy-chicken-fried-rice", ingredientId: "bell-pepper", isOptional: false },
-      { id: "spicy-chicken-fried-rice-soy-sauce", recipeId: "spicy-chicken-fried-rice", ingredientId: "soy-sauce", isOptional: false },
-      { id: "spicy-chicken-fried-rice-red-pepper-flakes", recipeId: "spicy-chicken-fried-rice", ingredientId: "red-pepper-flakes", isOptional: true },
+      {
+        id: "spicy-chicken-fried-rice-chicken",
+        recipeId: "spicy-chicken-fried-rice",
+        ingredientId: "chicken",
+        isOptional: false,
+      },
+      {
+        id: "spicy-chicken-fried-rice-rice",
+        recipeId: "spicy-chicken-fried-rice",
+        ingredientId: "rice",
+        isOptional: false,
+      },
+      {
+        id: "spicy-chicken-fried-rice-onion",
+        recipeId: "spicy-chicken-fried-rice",
+        ingredientId: "onion",
+        isOptional: false,
+      },
+      {
+        id: "spicy-chicken-fried-rice-egg",
+        recipeId: "spicy-chicken-fried-rice",
+        ingredientId: "egg",
+        isOptional: false,
+      },
+      {
+        id: "spicy-chicken-fried-rice-bell-pepper",
+        recipeId: "spicy-chicken-fried-rice",
+        ingredientId: "bell-pepper",
+        isOptional: false,
+      },
+      {
+        id: "spicy-chicken-fried-rice-soy-sauce",
+        recipeId: "spicy-chicken-fried-rice",
+        ingredientId: "soy-sauce",
+        isOptional: false,
+      },
+      {
+        id: "spicy-chicken-fried-rice-red-pepper-flakes",
+        recipeId: "spicy-chicken-fried-rice",
+        ingredientId: "red-pepper-flakes",
+        isOptional: true,
+      },
     ],
     steps: [
       {
@@ -97,12 +167,42 @@ export const recipes: Recipe[] = [
     calories: 390,
     protein: 37,
     ingredients: [
-      { id: "quick-egg-chicken-bowl-chicken", recipeId: "quick-egg-chicken-bowl", ingredientId: "chicken", isOptional: false },
-      { id: "quick-egg-chicken-bowl-egg", recipeId: "quick-egg-chicken-bowl", ingredientId: "egg", isOptional: false },
-      { id: "quick-egg-chicken-bowl-rice", recipeId: "quick-egg-chicken-bowl", ingredientId: "rice", isOptional: false },
-      { id: "quick-egg-chicken-bowl-tomato", recipeId: "quick-egg-chicken-bowl", ingredientId: "tomato", isOptional: false },
-      { id: "quick-egg-chicken-bowl-onion", recipeId: "quick-egg-chicken-bowl", ingredientId: "onion", isOptional: false },
-      { id: "quick-egg-chicken-bowl-spinach", recipeId: "quick-egg-chicken-bowl", ingredientId: "spinach", isOptional: false },
+      {
+        id: "quick-egg-chicken-bowl-chicken",
+        recipeId: "quick-egg-chicken-bowl",
+        ingredientId: "chicken",
+        isOptional: false,
+      },
+      {
+        id: "quick-egg-chicken-bowl-egg",
+        recipeId: "quick-egg-chicken-bowl",
+        ingredientId: "egg",
+        isOptional: false,
+      },
+      {
+        id: "quick-egg-chicken-bowl-rice",
+        recipeId: "quick-egg-chicken-bowl",
+        ingredientId: "rice",
+        isOptional: false,
+      },
+      {
+        id: "quick-egg-chicken-bowl-tomato",
+        recipeId: "quick-egg-chicken-bowl",
+        ingredientId: "tomato",
+        isOptional: false,
+      },
+      {
+        id: "quick-egg-chicken-bowl-onion",
+        recipeId: "quick-egg-chicken-bowl",
+        ingredientId: "onion",
+        isOptional: false,
+      },
+      {
+        id: "quick-egg-chicken-bowl-spinach",
+        recipeId: "quick-egg-chicken-bowl",
+        ingredientId: "spinach",
+        isOptional: false,
+      },
     ],
     steps: [
       {

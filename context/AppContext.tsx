@@ -9,7 +9,9 @@ export type UserPreferences = {
   notificationsEnabled: boolean;
   appearance: string;
 };
-export type AvoidedIngredient = { type: "canonical"; ingredientId: string } | { type: "custom"; value: string };
+export type AvoidedIngredient =
+  | { type: "canonical"; ingredientId: string }
+  | { type: "custom"; value: string };
 
 type AppContextValue = {
   isAuthenticated: boolean;
@@ -26,21 +28,58 @@ type AppContextValue = {
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
 const initialPreferences: UserPreferences = {
-  diet: "No preference", nutritionGoals: ["High protein"], allergies: [], avoidedIngredients: [],
-  units: "Metric", notificationsEnabled: true, appearance: "System default",
+  diet: "No preference",
+  nutritionGoals: ["High protein"],
+  allergies: [],
+  avoidedIngredients: [],
+  units: "Metric",
+  notificationsEnabled: true,
+  appearance: "System default",
 };
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<AppContextValue["user"]>(null);
-  const [savedRecipeIds, setSavedRecipeIds] = useState(["chicken-egg-rice-bowl", "spicy-chicken-fried-rice", "quick-egg-chicken-bowl"]);
+  const [savedRecipeIds, setSavedRecipeIds] = useState([
+    "chicken-egg-rice-bowl",
+    "spicy-chicken-fried-rice",
+    "quick-egg-chicken-bowl",
+  ]);
   const [preferences, setPreferences] = useState(initialPreferences);
   const [pendingSaveId, setPendingSaveId] = useState<string | null>(null);
-  const signIn = (name = "Vignesh", email = "vignesh@example.com") => { setIsAuthenticated(true); setUser({ name, email }); };
-  const signOut = () => { setIsAuthenticated(false); setUser(null); setPendingSaveId(null); };
-  const toggleSaved = (id: string) => setSavedRecipeIds(old => old.includes(id) ? old.filter(saved => saved !== id) : [...old, id]);
-  const updatePreferences = (changes: Partial<UserPreferences>) => setPreferences(old => ({ ...old, ...changes }));
-  return <AppContext.Provider value={{ isAuthenticated, user, savedRecipeIds, preferences, pendingSaveId, signIn, signOut, toggleSaved, setPendingSaveId, updatePreferences }}>{children}</AppContext.Provider>;
+  const signIn = (name = "Vignesh", email = "vignesh@example.com") => {
+    setIsAuthenticated(true);
+    setUser({ name, email });
+  };
+  const signOut = () => {
+    setIsAuthenticated(false);
+    setUser(null);
+    setPendingSaveId(null);
+  };
+  const toggleSaved = (id: string) =>
+    setSavedRecipeIds((old) =>
+      old.includes(id) ? old.filter((saved) => saved !== id) : [...old, id],
+    );
+  const updatePreferences = (changes: Partial<UserPreferences>) =>
+    setPreferences((old) => ({ ...old, ...changes }));
+  return (
+    <AppContext.Provider
+      value={{
+        isAuthenticated,
+        user,
+        savedRecipeIds,
+        preferences,
+        pendingSaveId,
+        signIn,
+        signOut,
+        toggleSaved,
+        setPendingSaveId,
+        updatePreferences,
+      }}
+    >
+      {children}
+    </AppContext.Provider>
+  );
 }
 
 export function useApp() {

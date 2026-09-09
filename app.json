@@ -1,3 +1,11 @@
 {
-  "expo": { "name": "WhatToCook", "slug": "what-to-cook", "scheme": "whattocook", "orientation": "portrait", "userInterfaceStyle": "light", "android": { "package": "com.whattocook.wireframe" }, "plugins": ["expo-router"] }
+  "expo": {
+    "name": "WhatToCook",
+    "slug": "what-to-cook",
+    "scheme": "whattocook",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "android": { "package": "com.whattocook.wireframe" },
+    "plugins": ["expo-router"]
+  }
 }

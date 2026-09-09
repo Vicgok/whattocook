@@ -1,6 +1,93 @@
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { PrimaryButton, colors } from "@/components/ui";
 import { useApp } from "@/context/AppContext";
-export default function SignUp(){const router=useRouter();const {signIn,pendingSaveId,toggleSaved,setPendingSaveId}=useApp();const [name,setName]=useState("");const [email,setEmail]=useState("");const [password,setPassword]=useState("");const [confirm,setConfirm]=useState("");const [error,setError]=useState("");const submit=()=>{if(!name||!email||!password||!confirm){setError("Complete all fields.");return}if(password!==confirm){setError("Passwords do not match.");return}signIn(name,email);if(pendingSaveId){toggleSaved(pendingSaveId);setPendingSaveId(null);router.replace(`/recipes/${pendingSaveId}`)}else router.replace("/(tabs)/profile")};return <ScrollView contentContainerStyle={styles.content}><Pressable onPress={()=>router.back()}><Text style={styles.back}>‹ Back</Text></Pressable><View style={styles.body}><Text style={styles.title}>Create your account</Text><Text style={styles.support}>Save recipes, keep your pantry, and remember your food preferences.</Text>{[["Name",name,setName,false],["Email",email,setEmail,false],["Password",password,setPassword,true],["Confirm password",confirm,setConfirm,true]].map(([placeholder,value,onChange,secure])=><TextInput key={placeholder as string} value={value as string} onChangeText={onChange as (text:string)=>void} placeholder={placeholder as string} secureTextEntry={secure as boolean} autoCapitalize="none" style={styles.input}/>)}{!!error&&<Text style={styles.error}>{error}</Text>}<PrimaryButton label="Create account" onPress={submit}/><Pressable onPress={()=>router.push("/auth/sign-in")}><Text style={styles.link}>Already have an account? Sign in</Text></Pressable></View></ScrollView>};const styles=StyleSheet.create({content:{flexGrow:1,padding:20,paddingTop:58},back:{fontSize:16},body:{gap:14,marginTop:48},title:{fontSize:30,fontWeight:"700"},support:{fontSize:15,color:colors.textSecondary,lineHeight:21,marginBottom:12},input:{height:52,borderWidth:1,borderColor:colors.border,borderRadius:10,paddingHorizontal:12,fontSize:16},link:{fontWeight:"600",textAlign:"center"},error:{color:"#8a2020"}});
+export default function SignUp() {
+  const router = useRouter();
+  const { signIn, pendingSaveId, toggleSaved, setPendingSaveId } = useApp();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
+  const submit = () => {
+    if (!name || !email || !password || !confirm) {
+      setError("Complete all fields.");
+      return;
+    }
+    if (password !== confirm) {
+      setError("Passwords do not match.");
+      return;
+    }
+    signIn(name, email);
+    if (pendingSaveId) {
+      toggleSaved(pendingSaveId);
+      setPendingSaveId(null);
+      router.replace(`/recipes/${pendingSaveId}`);
+    } else router.replace("/(tabs)/profile");
+  };
+  return (
+    <ScrollView contentContainerStyle={styles.content}>
+      <Pressable onPress={() => router.back()}>
+        <Text style={styles.back}>‹ Back</Text>
+      </Pressable>
+      <View style={styles.body}>
+        <Text style={styles.title}>Create your account</Text>
+        <Text style={styles.support}>
+          Save recipes, keep your pantry, and remember your food preferences.
+        </Text>
+        {[
+          ["Name", name, setName, false],
+          ["Email", email, setEmail, false],
+          ["Password", password, setPassword, true],
+          ["Confirm password", confirm, setConfirm, true],
+        ].map(([placeholder, value, onChange, secure]) => (
+          <TextInput
+            key={placeholder as string}
+            value={value as string}
+            onChangeText={onChange as (text: string) => void}
+            placeholder={placeholder as string}
+            secureTextEntry={secure as boolean}
+            autoCapitalize="none"
+            style={styles.input}
+          />
+        ))}
+        {!!error && <Text style={styles.error}>{error}</Text>}
+        <PrimaryButton label="Create account" onPress={submit} />
+        <Pressable onPress={() => router.push("/auth/sign-in")}>
+          <Text style={styles.link}>Already have an account? Sign in</Text>
+        </Pressable>
+      </View>
+    </ScrollView>
+  );
+}
+const styles = StyleSheet.create({
+  content: { flexGrow: 1, padding: 20, paddingTop: 58 },
+  back: { fontSize: 16 },
+  body: { gap: 14, marginTop: 48 },
+  title: { fontSize: 30, fontWeight: "700" },
+  support: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    lineHeight: 21,
+    marginBottom: 12,
+  },
+  input: {
+    height: 52,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    fontSize: 16,
+  },
+  link: { fontWeight: "600", textAlign: "center" },
+  error: { color: "#8a2020" },
+});
