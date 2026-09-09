@@ -1,4 +1,10 @@
-import { type ComponentType, useEffect, useRef, useState } from "react";
+import {
+  type ComponentType,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   AccessibilityInfo,
   Animated,
@@ -103,6 +109,10 @@ function TabButton({
 }: TabButtonProps) {
   const selection = useRef(new Animated.Value(isFocused ? 1 : 0)).current;
   const press = useRef(new Animated.Value(0)).current;
+  const AnimatedIcon = useMemo(
+    () => Animated.createAnimatedComponent(Icon),
+    [Icon],
+  );
 
   useEffect(() => {
     selection.stopAnimation();
@@ -163,8 +173,6 @@ function TabButton({
     inputRange: [0, 1],
     outputRange: ["transparent", "#E8F2EA"],
   });
-  const AnimatedIcon = Animated.createAnimatedComponent(Icon);
-
   return (
     <Pressable
       accessibilityLabel={accessibilityLabel}
