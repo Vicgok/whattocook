@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Animated,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -22,10 +22,12 @@ import {
   OfflineBanner,
 } from "@/components/states";
 import { radius, spacing, typography } from "@/theme";
+import { TopScrollProtection } from "@/components/top-scroll-protection";
 
 export default function RecipeResults() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const scrollY = useRef(new Animated.Value(0)).current;
   const { pantry } = usePantry();
   const { state: initialState } = useLocalSearchParams<{ state?: string }>();
   const [query, setQuery] = useState("High-protein dinner under 30 minutes");
@@ -66,12 +68,18 @@ export default function RecipeResults() {
     .filter(Boolean);
   const retry = () => setState("loading");
   return (
-    <ScrollView
-      style={styles.page}
+    <View style={styles.page}>
+    <Animated.ScrollView
+      style={styles.scroll}
       contentContainerStyle={[
         styles.content,
         { paddingTop: insets.top + spacing.base },
       ]}
+      onScroll={Animated.event(
+        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+        { useNativeDriver: true },
+      )}
+      scrollEventThrottle={16}
     >
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.back}>
@@ -127,11 +135,14 @@ export default function RecipeResults() {
           </Pressable>
         </>
       )}
-    </ScrollView>
+    </Animated.ScrollView>
+    <TopScrollProtection backgroundColor={colors.background} scrollY={scrollY} />
+    </View>
   );
 }
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
+  scroll: { flex: 1 },
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxl,

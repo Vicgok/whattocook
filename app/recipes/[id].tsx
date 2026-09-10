@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
+  Animated,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -23,10 +23,12 @@ import {
 import { radius, spacing, typography } from "@/theme";
 import { useApp } from "@/context/AppContext";
 import { usePantry } from "@/context/PantryContext";
+import { TopScrollProtection } from "@/components/top-scroll-protection";
 
 export default function RecipeDetails() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const scrollY = useRef(new Animated.Value(0)).current;
   const { id } = useLocalSearchParams<{ id: string }>();
   const recipe = recipeById(id);
   const { pantry } = usePantry();
@@ -50,28 +52,18 @@ export default function RecipeDetails() {
   };
   return (
     <View style={styles.page}>
-      <View style={{ paddingTop: insets.top }}>
-        <View style={styles.header}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            onPress={() => router.back()}
-            style={styles.circle}
-          >
-            <Text style={styles.headerIcon}>‹</Text>
-          </Pressable>
-          <View style={styles.headerSpace} />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={saved ? "Remove saved recipe" : "Save recipe"}
-            onPress={save}
-            style={styles.circle}
-          >
-            <Text style={styles.headerIcon}>{saved ? "♥" : "♡"}</Text>
-          </Pressable>
-        </View>
-      </View>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+      <Animated.ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + 60 },
+        ]}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true },
+        )}
+        scrollEventThrottle={16}
+      >
         <PlaceholderImage height={220} />
         <Text style={styles.title}>{recipe.title}</Text>
         <View style={styles.metadata}>
@@ -122,7 +114,29 @@ export default function RecipeDetails() {
             Approx. {recipe.timeMinutes} minutes
           </Text>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
+      <TopScrollProtection backgroundColor={colors.background} scrollY={scrollY} />
+      <View style={[styles.safeHeader, { paddingTop: insets.top }]}>
+        <View style={styles.header}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            onPress={() => router.back()}
+            style={styles.circle}
+          >
+            <Text style={styles.headerIcon}>‹</Text>
+          </Pressable>
+          <View style={styles.headerSpace} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={saved ? "Remove saved recipe" : "Save recipe"}
+            onPress={save}
+            style={styles.circle}
+          >
+            <Text style={styles.headerIcon}>{saved ? "♥" : "♡"}</Text>
+          </Pressable>
+        </View>
+      </View>
       <View style={[styles.sticky, { paddingBottom: insets.bottom + 12 }]}>
         <SecondaryButton
           label={saved ? "Saved" : "Save"}
@@ -187,6 +201,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     flexDirection: "row",
     alignItems: "center",
+  },
+  safeHeader: {
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0,
+    zIndex: 2,
   },
   headerSpace: { flex: 1 },
   circle: {

@@ -1,7 +1,6 @@
 import {
   type ComponentType,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -107,26 +106,29 @@ function TabButton({
   onLongPress,
   onPress,
 }: TabButtonProps) {
-  const selection = useRef(new Animated.Value(isFocused ? 1 : 0)).current;
+  // These values are created once for the lifetime of a tab button. Focus only
+  // changes their value; it never swaps the icon, label, or background tree.
+  const activeProgress = useRef(new Animated.Value(isFocused ? 1 : 0)).current;
   const press = useRef(new Animated.Value(0)).current;
-  const AnimatedIcon = useMemo(
-    () => Animated.createAnimatedComponent(Icon),
-    [Icon],
-  );
 
   useEffect(() => {
-    selection.stopAnimation();
+    activeProgress.stopAnimation();
+    // A tab navigation can happen before Pressable delivers onPressOut. Reset
+    // the separate press channel so it cannot leave a stale pressed transform.
+    press.stopAnimation();
+    press.setValue(0);
+
     if (reduceMotion) {
-      selection.setValue(isFocused ? 1 : 0);
+      activeProgress.setValue(isFocused ? 1 : 0);
       return;
     }
 
-    Animated.timing(selection, {
+    Animated.timing(activeProgress, {
       toValue: isFocused ? 1 : 0,
-      duration: 180,
-      useNativeDriver: false,
+      duration: 160,
+      useNativeDriver: true,
     }).start();
-  }, [isFocused, reduceMotion, selection]);
+  }, [activeProgress, isFocused, press, reduceMotion]);
 
   const animatePress = (pressed: boolean) => {
     press.stopAnimation();
@@ -153,11 +155,7 @@ function TabButton({
     }).start();
   };
 
-  const tint = selection.interpolate({
-    inputRange: [0, 1],
-    outputRange: [INACTIVE_TINT, ACTIVE_TINT],
-  });
-  const selectionScale = selection.interpolate({
+  const selectionScale = activeProgress.interpolate({
     inputRange: [0, 1],
     outputRange: [0.96, 1],
   });
@@ -165,14 +163,8 @@ function TabButton({
     inputRange: [0, 1],
     outputRange: [1, 0.94],
   });
-  const opacity = press.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 0.8],
-  });
-  const backgroundColor = selection.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["transparent", "#E8F2EA"],
-  });
+  const tint = isFocused ? ACTIVE_TINT : INACTIVE_TINT;
+
   return (
     <Pressable
       accessibilityLabel={accessibilityLabel}
@@ -189,20 +181,19 @@ function TabButton({
       <Animated.View
         style={[
           styles.content,
-          { opacity, transform: [{ scale: pressScale }] },
+          { transform: [{ scale: pressScale }] },
         ]}
       >
-        <Animated.View
-          style={[
-            styles.iconContainer,
-            { backgroundColor, transform: [{ scale: selectionScale }] },
-          ]}
-        >
-          <AnimatedIcon color={tint} size={21} strokeWidth={2} />
+        <Animated.View style={styles.iconContainer}>
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.activeBackground, { opacity: activeProgress }]}
+          />
+          <Animated.View style={{ transform: [{ scale: selectionScale }] }}>
+            <Icon color={tint} size={21} strokeWidth={2} />
+          </Animated.View>
         </Animated.View>
-        <Animated.Text style={[styles.label, { color: tint }]}>
-          {label}
-        </Animated.Text>
+        <Animated.Text style={[styles.label, { color: tint }]}>{label}</Animated.Text>
       </Animated.View>
     </Pressable>
   );
@@ -233,7 +224,17 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     height: 32,
     justifyContent: "center",
+    overflow: "hidden",
     width: 40,
+  },
+  activeBackground: {
+    backgroundColor: "#E8F2EA",
+    borderRadius: 13,
+    bottom: 0,
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0,
   },
   label: {
     fontSize: 11,

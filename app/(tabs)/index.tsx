@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
+  Animated,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,6 +13,7 @@ import {
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HomeRecipeCard } from "@/components/home-recipe-card";
+import { TopScrollProtection } from "@/components/top-scroll-protection";
 import { usePantry } from "@/context/PantryContext";
 import { getIngredientById, ingredients } from "@/data/ingredients";
 import { recipes } from "@/data/mockRecipes";
@@ -23,6 +25,7 @@ const suggestions = ["High protein", "Under 20 min", "Healthy", "Comfort food"];
 export default function Home() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const scrollY = useRef(new Animated.Value(0)).current;
   const { pantry } = usePantry();
   const [query, setQuery] = useState("");
   const [inputFocused, setInputFocused] = useState(false);
@@ -44,12 +47,17 @@ export default function Home() {
       style={styles.page}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <ScrollView
+      <Animated.ScrollView
         contentContainerStyle={[
           styles.content,
           { paddingTop: insets.top + 16 },
         ]}
         keyboardShouldPersistTaps="handled"
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true },
+        )}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
@@ -213,7 +221,8 @@ export default function Home() {
             </ScrollView>
           </View>
         ) : null}
-      </ScrollView>
+      </Animated.ScrollView>
+      <TopScrollProtection backgroundColor={palette.background} scrollY={scrollY} />
     </KeyboardAvoidingView>
   );
 }

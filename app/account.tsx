@@ -1,12 +1,15 @@
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useRef } from "react";
+import { Alert, Animated, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PrimaryButton, SecondaryButton, colors } from "@/components/ui";
 import { useApp } from "@/context/AppContext";
 import { radius, spacing, typography } from "@/theme";
+import { TopScrollProtection } from "@/components/top-scroll-protection";
 export default function Account() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const scrollY = useRef(new Animated.Value(0)).current;
   const { user, signOut } = useApp();
   const leave = () =>
     Alert.alert("Sign out?", "You can sign back in anytime.", [
@@ -30,11 +33,18 @@ export default function Account() {
       ],
     );
   return (
-    <ScrollView
+    <View style={styles.page}>
+    <Animated.ScrollView
+      style={styles.scroll}
       contentContainerStyle={[
         styles.content,
         { paddingTop: insets.top + spacing.lg },
       ]}
+      onScroll={Animated.event(
+        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+        { useNativeDriver: true },
+      )}
+      scrollEventThrottle={16}
     >
       <Text style={styles.title}>Account</Text>
       <View style={styles.card}>
@@ -45,10 +55,14 @@ export default function Account() {
       </View>
       <PrimaryButton label="Sign out" onPress={leave} />
       <SecondaryButton label="Delete account" onPress={remove} />
-    </ScrollView>
+    </Animated.ScrollView>
+    <TopScrollProtection backgroundColor={colors.background} scrollY={scrollY} />
+    </View>
   );
 }
 const styles = StyleSheet.create({
+  page: { flex: 1, backgroundColor: colors.background },
+  scroll: { flex: 1 },
   content: {
     flexGrow: 1,
     padding: spacing.lg,

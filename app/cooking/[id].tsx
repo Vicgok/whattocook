@@ -26,7 +26,7 @@ export default function Cooking() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const recipe = recipeById(id);
-  const [step, setStep] = useState(Math.min(1, recipe.steps.length - 1));
+  const [step, setStep] = useState(0);
   const [sheet, setSheet] = useState<"ingredients" | "timer" | "done" | null>(
     null,
   );

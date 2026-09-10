@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
+  Animated,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -11,17 +11,26 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PrimaryButton, colors } from "@/components/ui";
 import { radius, spacing, typography } from "@/theme";
+import { TopScrollProtection } from "@/components/top-scroll-protection";
 export default function ForgotPassword() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const scrollY = useRef(new Animated.Value(0)).current;
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   return (
-    <ScrollView
+    <View style={styles.page}>
+    <Animated.ScrollView
+      style={styles.scroll}
       contentContainerStyle={[
         styles.content,
         { paddingTop: insets.top + spacing.base },
       ]}
+      onScroll={Animated.event(
+        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+        { useNativeDriver: true },
+      )}
+      scrollEventThrottle={16}
     >
       <Pressable onPress={() => router.back()}>
         <Text style={styles.back}>‹ Back</Text>
@@ -60,10 +69,14 @@ export default function ForgotPassword() {
           </>
         )}
       </View>
-    </ScrollView>
+    </Animated.ScrollView>
+    <TopScrollProtection backgroundColor={colors.background} scrollY={scrollY} />
+    </View>
   );
 }
 const styles = StyleSheet.create({
+  page: { flex: 1, backgroundColor: colors.background },
+  scroll: { flex: 1 },
   content: {
     flexGrow: 1,
     padding: spacing.lg,

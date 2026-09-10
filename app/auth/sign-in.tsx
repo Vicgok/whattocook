@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
+  Animated,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -12,9 +12,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PrimaryButton, SecondaryButton, colors } from "@/components/ui";
 import { radius, spacing, typography } from "@/theme";
 import { useApp } from "@/context/AppContext";
+import { TopScrollProtection } from "@/components/top-scroll-protection";
 export default function SignIn() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const scrollY = useRef(new Animated.Value(0)).current;
   const { signIn, pendingSaveId, toggleSaved, setPendingSaveId } = useApp();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,11 +34,18 @@ export default function SignIn() {
     } else router.replace("/(tabs)/profile");
   };
   return (
-    <ScrollView
+    <View style={styles.page}>
+    <Animated.ScrollView
+      style={styles.scroll}
       contentContainerStyle={[
         styles.content,
         { paddingTop: insets.top + spacing.base },
       ]}
+      onScroll={Animated.event(
+        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+        { useNativeDriver: true },
+      )}
+      scrollEventThrottle={16}
     >
       <Pressable onPress={() => router.back()}>
         <Text style={styles.back}>‹ Back</Text>
@@ -71,10 +80,14 @@ export default function SignIn() {
           onPress={() => router.push("/auth/sign-up")}
         />
       </View>
-    </ScrollView>
+    </Animated.ScrollView>
+    <TopScrollProtection backgroundColor={colors.background} scrollY={scrollY} />
+    </View>
   );
 }
 const styles = StyleSheet.create({
+  page: { flex: 1, backgroundColor: colors.background },
+  scroll: { flex: 1 },
   content: {
     flexGrow: 1,
     padding: spacing.lg,

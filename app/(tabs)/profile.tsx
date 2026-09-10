@@ -1,6 +1,7 @@
-import { ComponentProps, useEffect, useMemo, useState } from "react";
+import { ComponentProps, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  Animated,
   KeyboardAvoidingView,
   Modal as NativeModal,
   Pressable,
@@ -25,6 +26,7 @@ import { radius, spacing, typography } from "@/theme";
 import { AvoidedIngredient, useApp } from "@/context/AppContext";
 import { getIngredientById, ingredients } from "@/data/ingredients";
 import { searchIngredients } from "@/domain/ingredients/ingredient-search";
+import { TopScrollProtection } from "@/components/top-scroll-protection";
 
 const dietOptions = [
   ["No preference", "Show recipes from all diet types"],
@@ -114,6 +116,7 @@ function Modal(props: AppModalProps) {
 export default function Profile() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const scrollY = useRef(new Animated.Value(0)).current;
   const { isAuthenticated, user, preferences, updatePreferences } = useApp();
   const [sheet, setSheet] = useState<Sheet>(null),
     [info, setInfo] = useState<InfoKind>(null),
@@ -272,11 +275,16 @@ export default function Profile() {
   const copy = sheet ? sheetCopy[sheet] : null;
   return (
     <View style={styles.page}>
-      <ScrollView
+      <Animated.ScrollView
         contentContainerStyle={[
           styles.content,
           { paddingTop: insets.top + 35 },
         ]}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true },
+        )}
+        scrollEventThrottle={16}
       >
         <Text style={styles.title}>Profile</Text>
         <View style={styles.profile}>
@@ -358,7 +366,8 @@ export default function Profile() {
             onPress={() => router.push("/auth/sign-in")}
           />
         )}
-      </ScrollView>
+      </Animated.ScrollView>
+      <TopScrollProtection backgroundColor={colors.background} scrollY={scrollY} />
       <Modal
         visible={sheet !== null}
         transparent
