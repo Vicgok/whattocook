@@ -34,12 +34,20 @@ export function AnimatedTabBar({
   const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
-    void AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    let isMounted = true;
+    const updateReduceMotion = (enabled: boolean) => {
+      if (isMounted) setReduceMotion(enabled);
+    };
+
+    void AccessibilityInfo.isReduceMotionEnabled().then(updateReduceMotion);
     const subscription = AccessibilityInfo.addEventListener(
       "reduceMotionChanged",
-      setReduceMotion,
+      updateReduceMotion,
     );
-    return () => subscription.remove();
+    return () => {
+      isMounted = false;
+      subscription.remove();
+    };
   }, []);
 
   return (
@@ -128,6 +136,11 @@ function TabButton({
       duration: 160,
       useNativeDriver: true,
     }).start();
+
+    return () => {
+      activeProgress.stopAnimation();
+      press.stopAnimation();
+    };
   }, [activeProgress, isFocused, press, reduceMotion]);
 
   const animatePress = (pressed: boolean) => {

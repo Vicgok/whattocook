@@ -8,11 +8,11 @@
     "test:ingredients": "tsc --ignoreConfig --strict --ignoreDeprecations 6.0 --outDir .ingredient-test-build --module commonjs --target es2022 --moduleResolution node tests/ingredient-domain.test.ts && node .ingredient-test-build/tests/ingredient-domain.test.js"
   },
   "dependencies": {
-    "expo": "~57.0.21",
+    "expo": "~57.0.22",
     "expo-constants": "~57.0.17",
-    "expo-linear-gradient": "~57.0.1",
-    "expo-linking": "~57.0.9",
-    "expo-router": "~57.0.20",
+    "expo-linear-gradient": "~57.0.2",
+    "expo-linking": "~57.0.10",
+    "expo-router": "~57.0.21",
     "expo-status-bar": "~57.0.1",
     "lucide-react-native": "^1.43.0",
     "react": "^19.2.3",
