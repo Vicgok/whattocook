@@ -33,8 +33,8 @@ export default function RecipeDetails() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: recipe } = useRecipe(id);
-  const { userId } = useSupabaseSession();
-  const cookingSession = useCookingSession(userId ?? undefined, id);
+  const { userId, isReady } = useSupabaseSession();
+  const cookingSession = useCookingSession(userId ?? undefined, id, isReady);
   const { pantry } = usePantry();
   const { isAuthenticated, savedRecipeIds, toggleSaved, setPendingSaveId } =
     useApp();
@@ -49,7 +49,7 @@ export default function RecipeDetails() {
   const label = (ingredientId: string) =>
     getIngredientById(ingredientId)?.name ?? ingredientId;
   const save = () => {
-    if (isAuthenticated) toggleSaved(recipe.id);
+    if (userId) toggleSaved(recipe.id);
     else {
       setPendingSaveId(recipe.id);
       setPrompt(true);

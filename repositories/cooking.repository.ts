@@ -21,7 +21,7 @@ const toSession = (row: CookingSessionRow): CookingSession => ({
 export async function fetchActiveCookingSession(userId: string, recipeId: string): Promise<CookingSession | null> {
   const client = getSupabaseClient();
   if (!client) return null;
-  traceSupabaseRequest("cookingSession.list");
+  traceSupabaseRequest("cookingSession.list", "useCookingSession");
   const { data, error } = await client.from("cooking_sessions").select("*")
     .eq("user_id", userId).eq("recipe_id", recipeId).eq("status", "in_progress")
     .order("updated_at", { ascending: false }).limit(1);
@@ -30,12 +30,18 @@ export async function fetchActiveCookingSession(userId: string, recipeId: string
   return row ? toSession(row) : null;
 }
 
-export async function startCookingSession(userId: string, recipeId: string): Promise<CookingSession> {
-  const existing = await fetchActiveCookingSession(userId, recipeId);
-  if (existing) return existing;
+export async function startCookingSession(
+  userId: string,
+  recipeId: string,
+  options: { knownNoActiveSession?: boolean } = {},
+): Promise<CookingSession> {
+  if (!options.knownNoActiveSession) {
+    const existing = await fetchActiveCookingSession(userId, recipeId);
+    if (existing) return existing;
+  }
   const client = getSupabaseClient();
   if (!client) throw new Error("Supabase is not configured.");
-  traceSupabaseRequest("cookingSession.create");
+  traceSupabaseRequest("cookingSession.create", "useCookingSession.start");
   const { data, error } = await client.from("cooking_sessions")
     .insert({ user_id: userId, recipe_id: recipeId, current_step: 0, status: "in_progress" })
     .select().single();
@@ -46,7 +52,7 @@ export async function startCookingSession(userId: string, recipeId: string): Pro
 export async function updateCookingStep(sessionId: string, currentStep: number): Promise<void> {
   const client = getSupabaseClient();
   if (!client) return;
-  traceSupabaseRequest("cookingSession.update");
+  traceSupabaseRequest("cookingSession.update", "useCookingSession.updateStep");
   const { error } = await client.from("cooking_sessions")
     .update({ current_step: currentStep, updated_at: new Date().toISOString() }).eq("id", sessionId);
   if (error) throw error;
@@ -55,7 +61,7 @@ export async function updateCookingStep(sessionId: string, currentStep: number):
 export async function completeCookingSession(sessionId: string): Promise<void> {
   const client = getSupabaseClient();
   if (!client) return;
-  traceSupabaseRequest("cookingSession.complete");
+  traceSupabaseRequest("cookingSession.complete", "useCookingSession.complete");
   const { error } = await client.from("cooking_sessions")
     .update({ status: "completed", completed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", sessionId);
   if (error) throw error;

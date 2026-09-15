@@ -1,6 +1,6 @@
 import { Ingredient, IngredientCategory } from "@/domain/ingredients/ingredient.types";
 import { getSupabaseClient } from "@/lib/supabase";
-import { traceSupabaseRequest } from "@/lib/supabase-request-tracer";
+import { traceSupabaseError, traceSupabaseRequest } from "@/lib/supabase-request-tracer";
 
 type IngredientRow = {
   id: string; slug: string; name: string; category_id: string;
@@ -21,20 +21,26 @@ const toIngredient = (row: IngredientRow): Ingredient => ({
 export async function fetchIngredients(search = ""): Promise<Ingredient[] | null> {
   const client = getSupabaseClient();
   if (!client) return null;
-  traceSupabaseRequest("ingredients.list", search ? `search=${search}` : "all");
+  traceSupabaseRequest("ingredients.list", "useIngredients", search ? `search=${search}` : "all");
   let query = client.from("ingredients").select("*, ingredient_aliases(alias)").order("name");
   if (search.trim()) query = query.ilike("name", `%${search.trim()}%`);
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) {
+    traceSupabaseError("ingredients.list", error);
+    throw error;
+  }
   return (data as unknown as IngredientRow[]).map(toIngredient);
 }
 
 export async function fetchIngredientCategories(): Promise<IngredientCategory[] | null> {
   const client = getSupabaseClient();
   if (!client) return null;
-  traceSupabaseRequest("ingredientCategories.list");
+  traceSupabaseRequest("ingredientCategories.list", "useIngredientCategories");
   const { data, error } = await client.from("ingredient_categories").select("*").order("sort_order");
-  if (error) throw error;
+  if (error) {
+    traceSupabaseError("ingredientCategories.list", error);
+    throw error;
+  }
   return (data as unknown as CategoryRow[]).map((row) => ({
     id: row.id, slug: row.slug, name: row.name, sortOrder: row.sort_order,
   }));

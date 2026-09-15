@@ -29,8 +29,8 @@ export default function Cooking() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: recipe } = useRecipe(id);
-  const { userId } = useSupabaseSession();
-  const cookingSession = useCookingSession(userId ?? undefined, id);
+  const { userId, isReady } = useSupabaseSession();
+  const cookingSession = useCookingSession(userId ?? undefined, id, isReady);
   const orderedSteps = recipe ? orderRecipeSteps(recipe.steps) : [];
   const [step, setStep] = useState(() => initialCookingStepIndex(orderedSteps));
   useEffect(() => {

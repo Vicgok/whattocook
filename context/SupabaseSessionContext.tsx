@@ -1,29 +1,30 @@
 import { ReactNode, createContext, useContext, useEffect, useState } from "react";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 import { traceSupabaseRequest } from "@/lib/supabase-request-tracer";
+import { createAnonymousSessionBootstrap } from "@/lib/auth-bootstrap";
+import { traceSupabaseError, traceSupabaseSkip } from "@/lib/supabase-request-tracer";
 
 type SupabaseSessionValue = { userId: string | null; isReady: boolean };
 const SupabaseSessionContext = createContext<SupabaseSessionValue>({ userId: null, isReady: !isSupabaseConfigured });
-let anonymousSignIn: Promise<string | null> | null = null;
-
-function ensureAnonymousSession() {
-  if (!anonymousSignIn) {
-    const client = getSupabaseClient();
-    if (!client) return Promise.resolve(null);
-    traceSupabaseRequest("auth.signInAnonymously");
-    anonymousSignIn = client.auth.signInAnonymously()
-      .then(({ data }) => data.user?.id ?? null)
-      .finally(() => { anonymousSignIn = null; });
-  }
-  return anonymousSignIn;
-}
+/**
+ * Shared across provider mounts (including React Strict Mode's development
+ * remount). Restoring storage and anonymous sign-in are one bootstrap, so two
+ * effects can never create two anonymous users.
+ */
+const bootstrapSession = createAnonymousSessionBootstrap(
+  getSupabaseClient,
+  () => traceSupabaseRequest("auth.signInAnonymously", "SupabaseSessionProvider.bootstrap"),
+);
 
 /** Establishes an invisible anonymous identity for guest pantry persistence. */
 export function SupabaseSessionProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<SupabaseSessionValue>({ userId: null, isReady: !isSupabaseConfigured });
   useEffect(() => {
     const client = getSupabaseClient();
-    if (!client) return;
+    if (!client) {
+      traceSupabaseSkip("auth", "supabase_not_configured");
+      return;
+    }
     let active = true;
     const pendingUpdates = new Set<ReturnType<typeof setTimeout>>();
     // Supabase can synchronously emit INITIAL_SESSION while the provider is
@@ -35,12 +36,18 @@ export function SupabaseSessionProvider({ children }: { children: ReactNode }) {
       }, 0);
       pendingUpdates.add(timer);
     };
-    client.auth.getSession().then(async ({ data }) => {
-      if (data.session?.user) return setUser(data.session.user.id);
-      // Requires Supabase Dashboard > Auth > Providers > Anonymous sign-ins.
-      setUser(await ensureAnonymousSession());
-    }).catch(() => setUser(null));
-    const { data: subscription } = client.auth.onAuthStateChange((_event, session) => setUser(session?.user.id ?? null));
+    // Requires Supabase Dashboard > Auth > Providers > Anonymous sign-ins.
+    bootstrapSession().then((userId) => {
+      if (__DEV__) console.info(`[AUTH STATE] authReady=true userId=${userId?.slice(0, 8) ?? "none"}`);
+      setUser(userId);
+    }).catch((error) => {
+      traceSupabaseError("auth.bootstrap", error);
+      setUser(null);
+    });
+    const { data: subscription } = client.auth.onAuthStateChange((_event, session) => {
+      if (__DEV__) console.info(`[AUTH STATE] authReady=true userId=${session?.user.id.slice(0, 8) ?? "none"} isAnonymous=${session?.user.is_anonymous ?? false}`);
+      setUser(session?.user.id ?? null);
+    });
     return () => {
       active = false;
       pendingUpdates.forEach(clearTimeout);

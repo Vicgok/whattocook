@@ -1,7 +1,7 @@
 import { Recipe, RecipeStep } from "@/types/recipe";
 import { RecipeIngredient } from "@/domain/ingredients/ingredient.types";
 import { getSupabaseClient } from "@/lib/supabase";
-import { traceSupabaseRequest } from "@/lib/supabase-request-tracer";
+import { traceSupabaseError, traceSupabaseRequest } from "@/lib/supabase-request-tracer";
 
 type RecipeRow = { id: string; title: string; total_time_minutes: number; difficulty: Recipe["difficulty"]; calories: number | null; protein_grams: number | null; recipe_ingredients: { id: string; ingredient_id: string; quantity: number | null; unit: RecipeIngredient["unit"]; preparation: string | null; is_optional: boolean; sort_order: number }[]; recipe_steps: { id: string; step_number: number; instruction: string; duration_seconds: number | null }[] };
 const parseInstruction = (instruction: string) => {
@@ -24,10 +24,29 @@ const toRecipe = (row: RecipeRow): Recipe => ({
 export async function fetchRecipes(): Promise<Recipe[] | null> {
   const client = getSupabaseClient();
   if (!client) return null;
-  traceSupabaseRequest("recipes.list");
+  traceSupabaseRequest("recipes.list", "useRecipes");
   const { data, error } = await client.from("recipes")
     .select("*, recipe_ingredients(*), recipe_steps(*)")
     .order("title");
-  if (error) throw error;
+  if (error) {
+    traceSupabaseError("recipes.list", error);
+    throw error;
+  }
   return (data as unknown as RecipeRow[]).map(toRecipe);
+}
+
+/** Fetches only the requested recipe for a deep link or cold detail screen. */
+export async function fetchRecipe(id: string): Promise<Recipe | null> {
+  const client = getSupabaseClient();
+  if (!client) return null;
+  traceSupabaseRequest("recipes.detail", "useRecipe", `id=${id}`);
+  const { data, error } = await client.from("recipes")
+    .select("*, recipe_ingredients(*), recipe_steps(*)")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) {
+    traceSupabaseError("recipes.detail", error);
+    throw error;
+  }
+  return data ? toRecipe(data as unknown as RecipeRow) : null;
 }

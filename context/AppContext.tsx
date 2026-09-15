@@ -1,4 +1,8 @@
 import { createContext, ReactNode, useContext, useState } from "react";
+import { isSupabaseConfigured } from "@/lib/supabase";
+import { useSavedRecipeIds } from "@/hooks/useSavedRecipes";
+import { useUserPreferences } from "@/hooks/usePreferences";
+import { useSupabaseSession } from "@/context/SupabaseSessionContext";
 
 export type UserPreferences = {
   dietPreferences: string[];
@@ -38,6 +42,7 @@ const initialPreferences: UserPreferences = {
 };
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const { userId, isReady } = useSupabaseSession();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<AppContextValue["user"]>(null);
   const [savedRecipeIds, setSavedRecipeIds] = useState([
@@ -47,6 +52,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   ]);
   const [preferences, setPreferences] = useState(initialPreferences);
   const [pendingSaveId, setPendingSaveId] = useState<string | null>(null);
+  const saved = useSavedRecipeIds(userId ?? undefined, isReady);
+  const remotePreferences = useUserPreferences(userId ?? undefined, isReady);
+  const useRemoteData = Boolean(isSupabaseConfigured && isReady && userId);
+  const currentSavedRecipeIds = useRemoteData ? saved.data ?? [] : savedRecipeIds;
+  const currentPreferences = useRemoteData ? remotePreferences.data ?? initialPreferences : preferences;
   const signIn = (name = "Vignesh", email = "vignesh@example.com") => {
     setIsAuthenticated(true);
     setUser({ name, email });
@@ -57,18 +67,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setPendingSaveId(null);
   };
   const toggleSaved = (id: string) =>
-    setSavedRecipeIds((old) =>
-      old.includes(id) ? old.filter((saved) => saved !== id) : [...old, id],
-    );
+    useRemoteData
+      ? (currentSavedRecipeIds.includes(id) ? saved.unsave.mutate(id) : saved.save.mutate(id))
+      : setSavedRecipeIds((old) => old.includes(id) ? old.filter((saved) => saved !== id) : [...old, id]);
   const updatePreferences = (changes: Partial<UserPreferences>) =>
-    setPreferences((old) => ({ ...old, ...changes }));
+    useRemoteData
+      ? remotePreferences.update.mutate({ ...currentPreferences, ...changes })
+      : setPreferences((old) => ({ ...old, ...changes }));
   return (
     <AppContext.Provider
       value={{
         isAuthenticated,
         user,
-        savedRecipeIds,
-        preferences,
+        savedRecipeIds: currentSavedRecipeIds,
+        preferences: currentPreferences,
         pendingSaveId,
         signIn,
         signOut,
