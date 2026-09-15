@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { recipeById } from "@/data/mockRecipes";
+import { useRecipe } from "@/hooks/useRecipes";
 import { getIngredientById, ingredients } from "@/data/ingredients";
 import { matchRecipeToPantry } from "@/domain/ingredients/ingredient-matcher";
 import {
@@ -24,17 +24,22 @@ import { radius, spacing, typography } from "@/theme";
 import { useApp } from "@/context/AppContext";
 import { usePantry } from "@/context/PantryContext";
 import { TopScrollProtection } from "@/components/top-scroll-protection";
+import { useSupabaseSession } from "@/context/SupabaseSessionContext";
+import { useCookingSession } from "@/hooks/useCookingSession";
 
 export default function RecipeDetails() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
   const { id } = useLocalSearchParams<{ id: string }>();
-  const recipe = recipeById(id);
+  const { data: recipe } = useRecipe(id);
+  const { userId } = useSupabaseSession();
+  const cookingSession = useCookingSession(userId ?? undefined, id);
   const { pantry } = usePantry();
   const { isAuthenticated, savedRecipeIds, toggleSaved, setPendingSaveId } =
     useApp();
   const [prompt, setPrompt] = useState(false);
+  if (!recipe) return null;
   const saved = savedRecipeIds.includes(recipe.id);
   const match = matchRecipeToPantry(pantry, recipe.ingredients, ingredients);
   const matchedIds = new Set(match.matchedIngredients.map((item) => item.id));
@@ -49,6 +54,10 @@ export default function RecipeDetails() {
       setPendingSaveId(recipe.id);
       setPrompt(true);
     }
+  };
+  const startCooking = async () => {
+    if (userId) await cookingSession.start.mutateAsync();
+    router.push(`/cooking/${recipe.id}`);
   };
   return (
     <View style={styles.page}>
@@ -145,7 +154,7 @@ export default function RecipeDetails() {
         />
         <PrimaryButton
           label="Start Cooking"
-          onPress={() => router.push(`/cooking/${recipe.id}`)}
+          onPress={() => void startCooking()}
           style={{ flex: 2 }}
         />
       </View>

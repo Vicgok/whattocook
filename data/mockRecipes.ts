@@ -54,31 +54,37 @@ export const recipes: Recipe[] = [
     ],
     steps: [
       {
+        stepNumber: 1,
         title: "Prepare the rice",
         description: "Warm the cooked rice and set it aside.",
         durationMinutes: 3,
       },
       {
+        stepNumber: 2,
         title: "Dice the onion and tomato",
         description: "Cut into small, even pieces.",
         durationMinutes: 2,
       },
       {
+        stepNumber: 3,
         title: "Cook the chicken",
         description: "Cook chicken in a hot pan until browned.",
         durationMinutes: 8,
       },
       {
+        stepNumber: 4,
         title: "Scramble the egg",
         description: "Push chicken aside and softly scramble the egg.",
         durationMinutes: 3,
       },
       {
+        stepNumber: 5,
         title: "Combine everything",
         description: "Add rice, tomato and onion, then toss well.",
         durationMinutes: 5,
       },
       {
+        stepNumber: 6,
         title: "Serve the bowl",
         description: "Finish with yogurt and optional coriander.",
         durationMinutes: 4,
@@ -138,21 +144,25 @@ export const recipes: Recipe[] = [
     ],
     steps: [
       {
+        stepNumber: 1,
         title: "Prep vegetables",
         description: "Dice the onion and capsicum.",
         durationMinutes: 3,
       },
       {
+        stepNumber: 2,
         title: "Sear chicken",
         description: "Cook chicken until browned.",
         durationMinutes: 7,
       },
       {
+        stepNumber: 3,
         title: "Fry rice",
         description: "Toss rice with vegetables and seasoning.",
         durationMinutes: 6,
       },
       {
+        stepNumber: 4,
         title: "Finish",
         description: "Fold in egg and serve hot.",
         durationMinutes: 4,
@@ -206,21 +216,25 @@ export const recipes: Recipe[] = [
     ],
     steps: [
       {
+        stepNumber: 1,
         title: "Prepare ingredients",
         description: "Chop vegetables and warm the rice.",
         durationMinutes: 3,
       },
       {
+        stepNumber: 2,
         title: "Cook chicken",
         description: "Pan cook chicken until done.",
         durationMinutes: 8,
       },
       {
+        stepNumber: 3,
         title: "Add eggs",
         description: "Scramble eggs in the same pan.",
         durationMinutes: 3,
       },
       {
+        stepNumber: 4,
         title: "Assemble",
         description: "Layer all ingredients in a bowl.",
         durationMinutes: 4,

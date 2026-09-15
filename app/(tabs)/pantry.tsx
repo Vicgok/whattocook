@@ -21,8 +21,9 @@ import {
 } from "@/components/ui";
 import { radius, spacing, typography } from "@/theme";
 import { EmptyState } from "@/components/states";
-import { getIngredientById, ingredients } from "@/data/ingredients";
+import { ingredients as localIngredients } from "@/data/ingredients";
 import { searchIngredients } from "@/domain/ingredients/ingredient-search";
+import { useIngredients } from "@/hooks/useIngredients";
 
 const suggestionIds = [
   "chicken",
@@ -37,6 +38,9 @@ const suggestionIds = [
 
 export default function Pantry() {
   const { pantry, addIngredients, removeIngredient } = usePantry();
+  const { data: ingredients = localIngredients } = useIngredients();
+  const ingredientById = (ingredientId: string) =>
+    ingredients.find((ingredient) => ingredient.id === ingredientId);
   const { add } = useLocalSearchParams<{ add?: string }>();
   const [visible, setVisible] = useState(add === "1");
   const [search, setSearch] = useState("");
@@ -49,7 +53,7 @@ export default function Pantry() {
         : [...old, ingredientId],
     );
   const shown = pantry.filter((item) =>
-    getIngredientById(item.ingredientId)
+    ingredientById(item.ingredientId)
       ?.name.toLowerCase()
       .includes(search.toLowerCase()),
   );
@@ -58,7 +62,7 @@ export default function Pantry() {
     ingredients,
   ).map((result) => result.ingredient);
   const suggestions = suggestionIds
-    .map(getIngredientById)
+    .map(ingredientById)
     .filter((ingredient): ingredient is NonNullable<typeof ingredient> =>
       Boolean(ingredient),
     );
@@ -84,7 +88,7 @@ export default function Pantry() {
           <>
             <SectionHeader>Available ingredients</SectionHeader>
             {shown.map((item) => {
-              const ingredient = getIngredientById(item.ingredientId);
+              const ingredient = ingredientById(item.ingredientId);
               return ingredient ? (
                 <IngredientRow
                   key={item.id}
@@ -142,7 +146,7 @@ export default function Pantry() {
             {selected.length > 0 && (
               <View style={styles.chips}>
                 {selected.map((ingredientId) => {
-                  const ingredient = getIngredientById(ingredientId);
+                  const ingredient = ingredientById(ingredientId);
                   return ingredient ? (
                     <IngredientChip
                       key={ingredientId}

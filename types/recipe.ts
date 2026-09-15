@@ -8,5 +8,14 @@ export type Recipe = {
   calories: number;
   protein: number;
   ingredients: RecipeIngredient[];
-  steps: { title: string; description: string; durationMinutes?: number }[];
+  steps: RecipeStep[];
+};
+
+/** Database steps are one-based; UI state always uses the array's zero-based index. */
+export type RecipeStep = {
+  id?: string;
+  stepNumber: number;
+  title: string;
+  description: string;
+  durationMinutes?: number;
 };

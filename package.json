@@ -5,9 +5,12 @@
   "scripts": {
     "start": "expo start",
     "typecheck": "tsc --noEmit",
-    "test:ingredients": "tsc --ignoreConfig --strict --ignoreDeprecations 6.0 --outDir .ingredient-test-build --module commonjs --target es2022 --moduleResolution node tests/ingredient-domain.test.ts && node .ingredient-test-build/tests/ingredient-domain.test.js"
+    "test:ingredients": "tsc --ignoreConfig --strict --ignoreDeprecations 6.0 --outDir .ingredient-test-build --module commonjs --target es2022 --moduleResolution node tests/ingredient-domain.test.ts tests/recipe-flow.test.ts && node .ingredient-test-build/tests/ingredient-domain.test.js && node .ingredient-test-build/tests/recipe-flow.test.js"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@supabase/supabase-js": "^2.116.0",
+    "@tanstack/react-query": "^5.102.8",
     "expo": "~57.0.22",
     "expo-constants": "~57.0.17",
     "expo-linear-gradient": "~57.0.2",
@@ -20,10 +23,13 @@
     "react-native": "^0.86.3",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
-    "react-native-svg": "15.15.4"
+    "react-native-svg": "15.15.4",
+    "react-native-url-polyfill": "^4.0.0"
   },
   "devDependencies": {
     "@types/react": "~19.2.4",
+    "supabase": "^2.117.0",
+    "tsx": "4.23.13",
     "typescript": "~6.0.3"
   },
   "private": true

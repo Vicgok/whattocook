@@ -2,6 +2,9 @@
 /node_modules
 /.expo-shared
 /.ingredient-test-build
+.env
+.env.*
+!.env.example
 
 # Docs
 /docs

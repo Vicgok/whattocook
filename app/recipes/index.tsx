@@ -9,9 +9,9 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { recipes } from "@/data/mockRecipes";
 import { getIngredientById, ingredients } from "@/data/ingredients";
-import { matchRecipeToPantry } from "@/domain/ingredients/ingredient-matcher";
+import { rankRecipesForPantry } from "@/domain/recipes/recipe-matching";
+import { useRecipes } from "@/hooks/useRecipes";
 import { usePantry } from "@/context/PantryContext";
 import { colors, SuggestionChip } from "@/components/ui";
 import { RecipeCard } from "@/components/RecipeCard";
@@ -29,6 +29,7 @@ export default function RecipeResults() {
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
   const { pantry } = usePantry();
+  const { data: recipes = [] } = useRecipes();
   const { state: initialState } = useLocalSearchParams<{ state?: string }>();
   const [query, setQuery] = useState("High-protein dinner under 30 minutes");
   const [filter, setFilter] = useState("Best match");
@@ -46,11 +47,7 @@ export default function RecipeResults() {
   }, [state]);
   const matches = useMemo(
     () =>
-      recipes
-        .map((recipe) => ({
-          recipe,
-          match: matchRecipeToPantry(pantry, recipe.ingredients, ingredients),
-        }))
+      rankRecipesForPantry(recipes, pantry, ingredients)
         .sort((a, b) =>
           filter === "Fastest"
             ? a.recipe.timeMinutes - b.recipe.timeMinutes

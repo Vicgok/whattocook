@@ -16,8 +16,8 @@ import { HomeRecipeCard } from "@/components/home-recipe-card";
 import { TopScrollProtection } from "@/components/top-scroll-protection";
 import { usePantry } from "@/context/PantryContext";
 import { getIngredientById, ingredients } from "@/data/ingredients";
-import { recipes } from "@/data/mockRecipes";
-import { matchRecipeToPantry } from "@/domain/ingredients/ingredient-matcher";
+import { rankRecipesForPantry } from "@/domain/recipes/recipe-matching";
+import { useRecipes } from "@/hooks/useRecipes";
 import { colors as palette } from "@/theme";
 
 const suggestions = ["High protein", "Under 20 min", "Healthy", "Comfort food"];
@@ -27,16 +27,14 @@ export default function Home() {
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
   const { pantry } = usePantry();
+  const { data: recipes = [] } = useRecipes();
   const [query, setQuery] = useState("");
   const [inputFocused, setInputFocused] = useState(false);
   const visiblePantry = pantry.slice(0, 4);
   const hiddenPantryCount = Math.max(0, pantry.length - visiblePantry.length);
   const recommendations = useMemo(
     () =>
-      recipes.map((recipe) => ({
-        recipe,
-        match: matchRecipeToPantry(pantry, recipe.ingredients, ingredients),
-      })),
+      rankRecipesForPantry(recipes, pantry, ingredients),
     [pantry],
   );
   const bestMatch = recommendations[0];
