@@ -24,7 +24,8 @@ function MoodVisual() { return <View style={{ gap: spacing.md }}><View style={{ 
 
 export default function Onboarding() {
   const router = useRouter(); const insets = useSafeAreaInsets(); const { userId, isReady } = useSupabaseSession();
-  const profile = useProfile(userId ?? undefined, isReady); const preferences = useUserPreferences(userId ?? undefined, isReady); const device = useDeviceOnboardingCompletion(userId ?? undefined);
+  // Onboarding writes only on completion; it must not prefetch private data.
+  const profile = useProfile(userId ?? undefined, isReady, false); const preferences = useUserPreferences(userId ?? undefined, false); const device = useDeviceOnboardingCompletion(userId ?? undefined);
   const [step, setStep] = useState(0); const [diet, setDiet] = useState("No preference"); const [selectedGoals, setGoals] = useState<string[]>([]); const [selectedAllergies, setAllergies] = useState<string[]>([]); const [selectedAvoids, setAvoids] = useState<string[]>([]);
   const toggle = (value: string, values: string[], set: (next: string[]) => void) => set(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);
   const complete = async (savePreferences: boolean) => {

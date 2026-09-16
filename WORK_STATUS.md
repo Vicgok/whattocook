@@ -39,7 +39,7 @@ Completed in the baseline:
 - Onboarding completion tracking and identity cache guards
 - Identity/onboarding database migration
 
-In the current working tree (not yet committed):
+Implemented and validated:
 
 - Onboarding now suppresses profile and preference prefetching before completion.
 - Startup routing now uses the device onboarding marker as its source of truth,
@@ -50,9 +50,8 @@ In the current working tree (not yet committed):
 Next:
 
 - Review the current changes
-- Run type checks and relevant tests
 - Verify sign-up, sign-in, onboarding completion, app restart, and sign-out flows
-- Commit and push the completed phase
+- Continue Phase 5 verification and complete any remaining identity/onboarding work
 
 ## Future phases
 
@@ -71,6 +70,7 @@ phase only when they are agreed.
 | --- | --- |
 | 2026-09-16 | Created shared status tracker. Phase 5 identity/onboarding work is active. |
 | 2026-09-16 | Recorded uncommitted Phase 5 guard changes: defer private-data loading until onboarding completion and route startup from the device marker. |
+| 2026-09-16 | Validated the onboarding-data guard changes with type checking and the ingredient/recipe/request-audit test suite. |
 
 ## How to use this file
 

@@ -5,13 +5,13 @@ import {
   fetchOrCreateProfile,
 } from "@/repositories/profile.repository";
 
-export function useProfile(userId?: string, authReady = false) {
+export function useProfile(userId?: string, authReady = false, loadProfile = true) {
   const queryClient = useQueryClient();
   const key = queryKeys.profile(userId ?? "guest");
   const query = useQuery({
     queryKey: key,
     queryFn: () => fetchOrCreateProfile(userId!),
-    enabled: Boolean(authReady && userId),
+    enabled: Boolean(authReady && userId && loadProfile),
     staleTime: 24 * 60 * 60 * 1000,
     gcTime: 7 * 24 * 60 * 60 * 1000,
     meta: { persist: true },

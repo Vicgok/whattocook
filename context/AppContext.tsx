@@ -4,6 +4,7 @@ import * as Linking from "expo-linking";
 import { useSavedRecipeIds } from "@/hooks/useSavedRecipes";
 import { useUserPreferences } from "@/hooks/usePreferences";
 import { useSupabaseSession } from "@/context/SupabaseSessionContext";
+import { useDeviceOnboardingCompletion } from "@/lib/onboarding-completion";
 
 export type AvoidedIngredient =
   | { type: "canonical"; ingredientId: string }
@@ -47,10 +48,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     isSignedIn,
     signOut: supabaseSignOut,
   } = useSupabaseSession();
+  const onboarding = useDeviceOnboardingCompletion(userId ?? undefined);
   const [pendingSaveId, setPendingSaveId] = useState<string | null>(null);
-  const saved = useSavedRecipeIds(userId ?? undefined, isReady);
-  const remotePreferences = useUserPreferences(userId ?? undefined, isReady);
-  const remote = Boolean(isSupabaseConfigured && isReady && userId);
+  const dataReady = Boolean(isReady && onboarding.ready && onboarding.completed);
+  const saved = useSavedRecipeIds(userId ?? undefined, dataReady);
+  const remotePreferences = useUserPreferences(userId ?? undefined, dataReady);
+  const remote = Boolean(isSupabaseConfigured && dataReady && userId);
   const preferences = remote
     ? (remotePreferences.data ?? initialPreferences)
     : initialPreferences;

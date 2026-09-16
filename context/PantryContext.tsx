@@ -4,6 +4,7 @@ import { PantryItem } from "@/domain/ingredients/ingredient.types";
 import { useRemotePantry } from "@/hooks/usePantry";
 import { useSupabaseSession } from "@/context/SupabaseSessionContext";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { useDeviceOnboardingCompletion } from "@/lib/onboarding-completion";
 
 type PantryContextValue = {
   pantry: PantryItem[];
@@ -20,12 +21,14 @@ const createPantryItem = (ingredientId: string): PantryItem => ({
 });
 export function PantryProvider({ children }: { children: ReactNode }) {
   const { userId, isReady } = useSupabaseSession();
+  const onboarding = useDeviceOnboardingCompletion(userId ?? undefined);
   const [pantry, setPantry] = useState<PantryItem[]>(() =>
     defaultPantryIngredientIds.map(createPantryItem),
   );
-  const remote = useRemotePantry(userId ?? undefined, isReady);
+  const dataReady = Boolean(isReady && onboarding.ready && onboarding.completed);
+  const remote = useRemotePantry(userId ?? undefined, dataReady);
   const remotePantry = remote.data;
-  const usePersistedPantry = Boolean(isSupabaseConfigured && userId && isReady);
+  const usePersistedPantry = Boolean(isSupabaseConfigured && userId && dataReady);
   const addIngredients = (ingredientIds: string[]) => {
     if (usePersistedPantry) {
       remote.addIngredients.mutate(ingredientIds);
