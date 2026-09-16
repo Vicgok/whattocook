@@ -41,7 +41,11 @@ Completed in the baseline:
 
 In the current working tree (not yet committed):
 
-- Refinements to onboarding, app-entry protection, profile loading, and app/pantry state integration
+- Onboarding now suppresses profile and preference prefetching before completion.
+- Startup routing now uses the device onboarding marker as its source of truth,
+  avoiding a profile request during the first-route decision.
+- Pantry, preferences, and saved-recipe data hydration now wait until the device
+  marker confirms onboarding is complete.
 
 Next:
 
@@ -66,6 +70,7 @@ phase only when they are agreed.
 | Date | Update |
 | --- | --- |
 | 2026-09-16 | Created shared status tracker. Phase 5 identity/onboarding work is active. |
+| 2026-09-16 | Recorded uncommitted Phase 5 guard changes: defer private-data loading until onboarding completion and route startup from the device marker. |
 
 ## How to use this file
 
