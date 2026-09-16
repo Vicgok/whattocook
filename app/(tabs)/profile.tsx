@@ -27,6 +27,7 @@ import { AvoidedIngredient, useApp } from "@/context/AppContext";
 import { getIngredientById, ingredients } from "@/data/ingredients";
 import { searchIngredients } from "@/domain/ingredients/ingredient-search";
 import { TopScrollProtection } from "@/components/top-scroll-protection";
+import { useTabContentInset } from "@/hooks/use-tab-content-inset";
 
 const dietOptions = [
   ["No preference", "Show recipes from all diet types"],
@@ -116,6 +117,7 @@ function Modal(props: AppModalProps) {
 export default function Profile() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const contentBottomInset = useTabContentInset(spacing.xxl);
   const scrollY = useRef(new Animated.Value(0)).current;
   const { isAuthenticated, user, preferences, updatePreferences } = useApp();
   const [sheet, setSheet] = useState<Sheet>(null),
@@ -278,7 +280,7 @@ export default function Profile() {
       <Animated.ScrollView
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + 35 },
+          { paddingBottom: contentBottomInset, paddingTop: insets.top + 35 },
         ]}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],

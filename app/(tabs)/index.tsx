@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTabContentInset } from "@/hooks/use-tab-content-inset";
 import { HomeRecipeCard } from "@/components/home-recipe-card";
 import { TopScrollProtection } from "@/components/top-scroll-protection";
 import { usePantry } from "@/context/PantryContext";
@@ -25,6 +26,7 @@ const suggestions = ["High protein", "Under 20 min", "Healthy", "Comfort food"];
 export default function Home() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const contentBottomInset = useTabContentInset(32);
   const scrollY = useRef(new Animated.Value(0)).current;
   const { pantry } = usePantry();
   const { data: recipes = [] } = useRecipes();
@@ -47,7 +49,7 @@ export default function Home() {
       <Animated.ScrollView
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + 16 },
+          { paddingBottom: contentBottomInset, paddingTop: insets.top + 16 },
         ]}
         keyboardShouldPersistTaps="handled"
         onScroll={Animated.event(

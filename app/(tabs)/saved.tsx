@@ -12,10 +12,12 @@ import { PlaceholderImage, colors, TabScreenHeader } from "@/components/ui";
 import { EmptyState } from "@/components/states";
 import { useApp } from "@/context/AppContext";
 import { useRecipes } from "@/hooks/useRecipes";
+import { useTabContentInset } from "@/hooks/use-tab-content-inset";
 import { radius, spacing, typography } from "@/theme";
 
 export default function Saved() {
   const router = useRouter();
+  const contentBottomInset = useTabContentInset(spacing.xxl);
   const { savedRecipeIds, toggleSaved } = useApp();
   const { data: recipes = [] } = useRecipes();
   const [search, setSearch] = useState("");
@@ -34,7 +36,9 @@ export default function Saved() {
         title="Saved Recipes"
         subtitle="Recipes you want to cook again"
       />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: contentBottomInset }]}
+      >
         {savedRecipeIds.length > 0 && (
           <TextInput
             value={search}

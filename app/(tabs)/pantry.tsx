@@ -24,6 +24,7 @@ import { EmptyState } from "@/components/states";
 import { ingredients as localIngredients } from "@/data/ingredients";
 import { searchIngredients } from "@/domain/ingredients/ingredient-search";
 import { useIngredients } from "@/hooks/useIngredients";
+import { useTabContentInset } from "@/hooks/use-tab-content-inset";
 
 const suggestionIds = [
   "chicken",
@@ -38,6 +39,7 @@ const suggestionIds = [
 
 export default function Pantry() {
   const { pantry, addIngredients, removeIngredient } = usePantry();
+  const contentBottomInset = useTabContentInset(spacing.xxl);
   const { data: ingredients = localIngredients } = useIngredients();
   const ingredientById = (ingredientId: string) =>
     ingredients.find((ingredient) => ingredient.id === ingredientId);
@@ -70,7 +72,9 @@ export default function Pantry() {
   return (
     <View style={styles.page}>
       <TabScreenHeader title="Your Pantry" />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: contentBottomInset }]}
+      >
         <TextInput
           value={search}
           onChangeText={setSearch}
