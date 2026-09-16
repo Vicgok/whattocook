@@ -24,7 +24,7 @@ import {
 } from "@/components/ui";
 import { radius, spacing, typography } from "@/theme";
 import { AvoidedIngredient, useApp } from "@/context/AppContext";
-import { getIngredientById, ingredients } from "@/data/ingredients";
+import { useIngredients } from "@/hooks/useIngredients";
 import { searchIngredients } from "@/domain/ingredients/ingredient-search";
 import { TopScrollProtection } from "@/components/top-scroll-protection";
 import { useTabContentInset } from "@/hooks/use-tab-content-inset";
@@ -120,6 +120,7 @@ export default function Profile() {
   const contentBottomInset = useTabContentInset(spacing.xxl);
   const scrollY = useRef(new Animated.Value(0)).current;
   const { isAuthenticated, user, preferences, updatePreferences } = useApp();
+  const { data: ingredients = [] } = useIngredients();
   const [sheet, setSheet] = useState<Sheet>(null),
     [info, setInfo] = useState<InfoKind>(null),
     [dietPreferences, setDietPreferences] = useState(
@@ -176,7 +177,7 @@ export default function Profile() {
   );
   const avoidLabel = (item: AvoidedIngredient) =>
     item.type === "canonical"
-      ? (getIngredientById(item.ingredientId)?.name ?? item.ingredientId)
+      ? (ingredients.find((ingredient) => ingredient.id === item.ingredientId)?.name ?? item.ingredientId)
       : item.value;
   const addAvoid = (id: string) =>
     setAvoid((old) =>

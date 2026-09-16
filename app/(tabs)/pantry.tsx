@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -21,7 +22,6 @@ import {
 } from "@/components/ui";
 import { radius, spacing, typography } from "@/theme";
 import { EmptyState } from "@/components/states";
-import { ingredients as localIngredients } from "@/data/ingredients";
 import { searchIngredients } from "@/domain/ingredients/ingredient-search";
 import { useIngredients } from "@/hooks/useIngredients";
 import { useTabContentInset } from "@/hooks/use-tab-content-inset";
@@ -40,7 +40,7 @@ const suggestionIds = [
 export default function Pantry() {
   const { pantry, addIngredients, removeIngredient } = usePantry();
   const contentBottomInset = useTabContentInset(spacing.xxl);
-  const { data: ingredients = localIngredients } = useIngredients();
+  const { data: ingredients = [], isPending: ingredientsPending, isError: ingredientsError } = useIngredients();
   const ingredientById = (ingredientId: string) =>
     ingredients.find((ingredient) => ingredient.id === ingredientId);
   const { add } = useLocalSearchParams<{ add?: string }>();
@@ -98,7 +98,9 @@ export default function Pantry() {
                   key={item.id}
                   name={ingredient.name}
                   status="Available"
-                  onRemove={() => removeIngredient(item.ingredientId)}
+                  onRemove={() => void removeIngredient(item.ingredientId).catch(() =>
+                    Alert.alert("Could not remove ingredient", "Please try again."),
+                  )}
                 />
               ) : null;
             })}
@@ -132,7 +134,7 @@ export default function Pantry() {
               autoFocus
               style={styles.search}
             />
-            <View style={styles.chips}>
+            {ingredientsPending ? <Text style={styles.support}>Loading ingredients…</Text> : ingredientsError ? <Text style={styles.support}>Ingredients are unavailable. Please try again when you are online.</Text> : <View style={styles.chips}>
               {(ingredientSearch ? matchingIngredients : suggestions).map(
                 (ingredient) => (
                   <SuggestionChip
@@ -143,7 +145,7 @@ export default function Pantry() {
                   />
                 ),
               )}
-            </View>
+            </View>}
             {ingredientSearch && matchingIngredients.length === 0 && (
               <Text style={styles.support}>No ingredients found.</Text>
             )}
@@ -166,10 +168,11 @@ export default function Pantry() {
               label={`Add ${selected.length || ""} ingredient${selected.length === 1 ? "" : "s"}`}
               disabled={!selected.length}
               onPress={() => {
-                addIngredients(selected);
-                setSelected([]);
-                setIngredientSearch("");
-                setVisible(false);
+                void addIngredients(selected).then(() => {
+                  setSelected([]);
+                  setIngredientSearch("");
+                  setVisible(false);
+                }).catch(() => Alert.alert("Could not save pantry changes", "Please try again."));
               }}
             />
           </View>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Animated,
   Pressable,
@@ -9,10 +9,12 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getIngredientById, ingredients } from "@/data/ingredients";
 import { rankRecipesForPantry } from "@/domain/recipes/recipe-matching";
+import { filterCompatibleRecipes } from "@/domain/recipes/recipe-compatibility";
+import { useIngredients } from "@/hooks/useIngredients";
 import { useRecipes } from "@/hooks/useRecipes";
 import { usePantry } from "@/context/PantryContext";
+import { useApp } from "@/context/AppContext";
 import { colors, SuggestionChip } from "@/components/ui";
 import { RecipeCard } from "@/components/RecipeCard";
 import {
@@ -29,25 +31,24 @@ export default function RecipeResults() {
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
   const { pantry } = usePantry();
-  const { data: recipes = [] } = useRecipes();
+  const { preferences } = useApp();
+  const recipesQuery = useRecipes();
+  const { data: recipes = [] } = recipesQuery;
+  const ingredientsQuery = useIngredients();
+  const ingredients = ingredientsQuery.data ?? [];
   const { state: initialState } = useLocalSearchParams<{ state?: string }>();
   const [query, setQuery] = useState("High-protein dinner under 30 minutes");
   const [filter, setFilter] = useState("Best match");
-  const [state, setState] = useState(
-    initialState === "error"
-      ? "error"
-      : initialState === "empty"
-        ? "empty"
-        : "loading",
-  );
-  useEffect(() => {
-    if (state !== "loading") return;
-    const timer = setTimeout(() => setState("results"), 900);
-    return () => clearTimeout(timer);
-  }, [state]);
+  const eligibleRecipes = filterCompatibleRecipes(recipes, ingredients, {
+    dietPreferences: preferences.dietPreferences,
+    allergies: preferences.allergies,
+    avoidedIngredientIds: preferences.avoidedIngredients
+      .filter((item) => item.type === "canonical")
+      .map((item) => item.ingredientId),
+  });
   const matches = useMemo(
     () =>
-      rankRecipesForPantry(recipes, pantry, ingredients).sort((a, b) =>
+      rankRecipesForPantry(eligibleRecipes, pantry, ingredients).sort((a, b) =>
         filter === "Fastest"
           ? a.recipe.timeMinutes - b.recipe.timeMinutes
           : filter === "High protein"
@@ -57,12 +58,15 @@ export default function RecipeResults() {
                 b.match.missingIngredients.length ||
               a.recipe.timeMinutes - b.recipe.timeMinutes,
       ),
-    [filter, pantry],
+    [filter, ingredients, pantry, preferences.avoidedIngredients, recipes],
   );
   const pantryNames = pantry
-    .map((item) => getIngredientById(item.ingredientId)?.name)
+    .map((item) => ingredients.find((ingredient) => ingredient.id === item.ingredientId)?.name)
     .filter(Boolean);
-  const retry = () => setState("loading");
+  const isLoading = recipesQuery.isPending || ingredientsQuery.isPending;
+  const hasError = recipesQuery.isError || ingredientsQuery.isError || initialState === "error";
+  const isEmpty = initialState === "empty" || (!isLoading && !hasError && matches.length === 0);
+  const retry = () => { void recipesQuery.refetch(); void ingredientsQuery.refetch(); };
   return (
     <View style={styles.page}>
       <Animated.ScrollView
@@ -86,14 +90,14 @@ export default function RecipeResults() {
         </View>
         <TextInput value={query} onChangeText={setQuery} style={styles.query} />
         <OfflineBanner onRetry={retry} />
-        {state === "loading" ? (
+        {isLoading ? (
           <LoadingRecipeCards />
-        ) : state === "error" ? (
+        ) : hasError ? (
           <ErrorState
             onRetry={retry}
             onBack={() => router.replace("/(tabs)")}
           />
-        ) : state === "empty" ? (
+        ) : isEmpty ? (
           <EmptyState
             title="No good matches found"
             text="Try changing your request or adding a few more ingredients."
@@ -126,12 +130,6 @@ export default function RecipeResults() {
                 />
               ))}
             </View>
-            <Pressable onPress={() => setState("empty")}>
-              <Text style={styles.test}>Show no-results state</Text>
-            </Pressable>
-            <Pressable onPress={() => setState("error")}>
-              <Text style={styles.test}>Show error state</Text>
-            </Pressable>
           </>
         )}
       </Animated.ScrollView>

@@ -2,9 +2,9 @@ import {
   Ingredient,
   PantryItem,
   RecipeMatchResult,
-} from "@/domain/ingredients/ingredient.types";
-import { matchRecipeToPantry } from "@/domain/ingredients/ingredient-matcher";
-import { Recipe } from "@/types/recipe";
+} from "../ingredients/ingredient.types";
+import { matchRecipeToPantry } from "../ingredients/ingredient-matcher";
+import { Recipe } from "../../types/recipe";
 
 export type MatchedRecipe = { recipe: Recipe; match: RecipeMatchResult };
 

@@ -18,6 +18,12 @@ export type IngredientCategory = {
   name: string;
   sortOrder: number;
 };
+export type CompatibilityStatus = "compatible" | "incompatible";
+export type CompatibilityAssessment = {
+  requirementCode: string;
+  status: CompatibilityStatus;
+  verifiedAt: string;
+};
 export type Ingredient = {
   id: string;
   slug: string;
@@ -34,6 +40,7 @@ export type Ingredient = {
   parentIngredientId?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  compatibilityAssessments?: CompatibilityAssessment[];
 };
 export type PantryStorageLocation = "pantry" | "fridge" | "freezer";
 export type PantryItem = {

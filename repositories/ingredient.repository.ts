@@ -19,6 +19,11 @@ type IngredientRow = {
   created_at: string;
   updated_at: string;
   ingredient_aliases?: { alias: string }[];
+  ingredient_compatibility_assessments?: {
+    requirement_code: string;
+    status: "compatible" | "incompatible";
+    verified_at: string;
+  }[];
 };
 type CategoryRow = {
   id: string;
@@ -40,6 +45,11 @@ const toIngredient = (row: IngredientRow): Ingredient => ({
   imageKey: row.image_path,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
+  compatibilityAssessments: (row.ingredient_compatibility_assessments ?? []).map((assessment) => ({
+    requirementCode: assessment.requirement_code,
+    status: assessment.status,
+    verifiedAt: assessment.verified_at,
+  })),
 });
 
 export async function fetchIngredients(
@@ -54,7 +64,7 @@ export async function fetchIngredients(
   );
   let query = client
     .from("ingredients")
-    .select("*, ingredient_aliases(alias)")
+    .select("*, ingredient_aliases(alias), ingredient_compatibility_assessments(requirement_code,status,verified_at)")
     .order("name");
   if (search.trim()) query = query.ilike("name", `%${search.trim()}%`);
   const { data, error } = await query;

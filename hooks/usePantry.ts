@@ -11,11 +11,14 @@ import {
   traceSupabaseSkip,
 } from "@/lib/supabase-request-tracer";
 import { traceCache } from "@/lib/query-persistence";
+import { useSupabaseSession } from "@/context/SupabaseSessionContext";
+import { canQueryCurrentIdentity } from "@/lib/identity-query-gate";
 
 export function useRemotePantry(userId?: string, authReady = false) {
   const queryClient = useQueryClient();
+  const session = useSupabaseSession();
   const key = queryKeys.pantry(userId ?? "guest");
-  const enabled = Boolean(authReady && userId);
+  const enabled = canQueryCurrentIdentity(authReady, userId, session);
   useEffect(() => {
     if (!enabled)
       traceSupabaseSkip("pantry", authReady ? "no_user_id" : "auth_not_ready");

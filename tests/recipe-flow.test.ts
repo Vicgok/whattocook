@@ -3,12 +3,14 @@ import {
   initialCookingStepIndex,
   orderRecipeSteps,
 } from "../domain/cooking/step-navigation";
+import { rankRecipesForPantry } from "../domain/recipes/recipe-matching";
 import {
   Ingredient,
   PantryItem,
   RecipeIngredient,
 } from "../domain/ingredients/ingredient.types";
 import { RecipeStep } from "../types/recipe";
+import { Recipe } from "../types/recipe";
 
 const expect = (condition: unknown, message: string) => {
   if (!condition) throw new Error(message);
@@ -64,4 +66,12 @@ expect(
 expect(
   initialCookingStepIndex(ordered) === 0,
   "first database step maps to UI index zero",
+);
+const tiedRecipes: Recipe[] = [
+  { id: "z", title: "Zucchini Bowl", timeMinutes: 20, difficulty: "Easy", calories: 0, protein: 0, ingredients: required, steps: [] },
+  { id: "a", title: "Apple Bowl", timeMinutes: 20, difficulty: "Easy", calories: 0, protein: 0, ingredients: required, steps: [] },
+];
+expect(
+  rankRecipesForPantry(tiedRecipes, pantry, ingredients).map(({ recipe }) => recipe.id).join(",") === "a,z",
+  "equal matches are deterministically ordered by title",
 );

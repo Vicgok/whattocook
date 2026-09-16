@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Recipe } from "@/types/recipe";
 import { RecipeMatchResult } from "@/domain/ingredients/ingredient.types";
-import { getIngredientById } from "@/data/ingredients";
+import { useIngredients } from "@/hooks/useIngredients";
 import { colors, PlaceholderImage } from "./ui";
 import { radius, spacing, typography } from "@/theme";
 
@@ -16,9 +16,12 @@ export function RecipeCard({
   onPress: () => void;
   compact?: boolean;
 }) {
+  const { data: ingredients = [] } = useIngredients();
+  const ingredientName = (ingredientId: string) =>
+    ingredients.find((ingredient) => ingredient.id === ingredientId)?.name;
   const missingNames =
     match?.missingIngredients
-      .map((item) => getIngredientById(item.ingredientId)?.name)
+      .map((item) => ingredientName(item.ingredientId))
       .filter(Boolean) ?? [];
   return (
     <Pressable
