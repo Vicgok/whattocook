@@ -10,7 +10,13 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { recipeById } from "@/data/mockRecipes";
+import { useRecipe } from "@/hooks/useRecipes";
+import {
+  initialCookingStepIndex,
+  orderRecipeSteps,
+} from "@/domain/cooking/step-navigation";
+import { useSupabaseSession } from "@/context/SupabaseSessionContext";
+import { useCookingSession } from "@/hooks/useCookingSession";
 import { getIngredientById } from "@/data/ingredients";
 import {
   colors,
@@ -25,8 +31,27 @@ export default function Cooking() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const recipe = recipeById(id);
-  const [step, setStep] = useState(0);
+  const { data: recipe } = useRecipe(id);
+  const { userId, isReady } = useSupabaseSession();
+  const cookingSession = useCookingSession(userId ?? undefined, id, isReady);
+  const orderedSteps = recipe ? orderRecipeSteps(recipe.steps) : [];
+  const [step, setStep] = useState(() => initialCookingStepIndex(orderedSteps));
+  useEffect(() => {
+    if (orderedSteps.length > 0) setStep(initialCookingStepIndex(orderedSteps));
+  }, [recipe?.id]);
+  useEffect(() => {
+    const persistedStep = cookingSession.data?.currentStep;
+    if (
+      persistedStep != null &&
+      persistedStep >= 0 &&
+      persistedStep < orderedSteps.length
+    )
+      setStep(persistedStep);
+  }, [
+    cookingSession.data?.id,
+    cookingSession.data?.currentStep,
+    orderedSteps.length,
+  ]);
   const [sheet, setSheet] = useState<"ingredients" | "timer" | "done" | null>(
     null,
   );
@@ -40,11 +65,23 @@ export default function Cooking() {
     );
     return () => clearInterval(timer);
   }, [running]);
-  const current = recipe.steps[step];
-  const finish = () =>
-    step === recipe.steps.length - 1
-      ? setSheet("done")
-      : setStep((value) => value + 1);
+  if (!recipe || step < 0 || !orderedSteps[step]) return null;
+  const current = orderedSteps[step];
+  const setCookingStep = (nextStep: number) => {
+    setStep(nextStep);
+    if (cookingSession.data)
+      cookingSession.updateStep.mutate({
+        sessionId: cookingSession.data.id,
+        step: nextStep,
+      });
+  };
+  const finish = () => {
+    if (step === orderedSteps.length - 1) {
+      if (cookingSession.data)
+        cookingSession.complete.mutate(cookingSession.data.id);
+      setSheet("done");
+    } else setCookingStep(step + 1);
+  };
   const mm = String(Math.floor(seconds / 60)).padStart(2, "0"),
     ss = String(seconds % 60).padStart(2, "0");
   return (
@@ -60,13 +97,13 @@ export default function Cooking() {
             <Text style={styles.exitIcon}>×</Text>
           </Pressable>
           <Text style={styles.stepLabel}>
-            Step {step + 1} of {recipe.steps.length}
+            Step {step + 1} of {orderedSteps.length}
           </Text>
           <View style={styles.headerSpace} />
         </View>
       </View>
       <View style={styles.progress}>
-        <CookingProgress value={((step + 1) / recipe.steps.length) * 100} />
+        <CookingProgress value={((step + 1) / orderedSteps.length) * 100} />
       </View>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.main}>
         <Text style={styles.number}>{step + 1}</Text>
@@ -103,12 +140,12 @@ export default function Cooking() {
           <SecondaryButton
             label="Previous"
             disabled={step === 0}
-            onPress={() => setStep((value) => Math.max(0, value - 1))}
+            onPress={() => setCookingStep(Math.max(0, step - 1))}
             style={{ flex: 1 }}
           />
           <PrimaryButton
             label={
-              step === recipe.steps.length - 1 ? "Finish Cooking" : "Next Step"
+              step === orderedSteps.length - 1 ? "Finish Cooking" : "Next Step"
             }
             onPress={finish}
             style={{ flex: 1.5 }}

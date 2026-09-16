@@ -367,7 +367,10 @@ export default function Profile() {
           />
         )}
       </Animated.ScrollView>
-      <TopScrollProtection backgroundColor={colors.background} scrollY={scrollY} />
+      <TopScrollProtection
+        backgroundColor={colors.background}
+        scrollY={scrollY}
+      />
       <Modal
         visible={sheet !== null}
         transparent

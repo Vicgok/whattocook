@@ -52,10 +52,7 @@ export function TopScrollProtection({
   return (
     <AnimatedLinearGradient
       pointerEvents="none"
-      style={[
-        styles.protection,
-        { height, opacity },
-      ]}
+      style={[styles.protection, { height, opacity }]}
       colors={[
         rgba(backgroundColor, 1),
         rgba(backgroundColor, 0.72),

@@ -1,9 +1,4 @@
-import {
-  type ComponentType,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type ComponentType, useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
   Animated,
@@ -192,10 +187,7 @@ function TabButton({
       testID={testID}
     >
       <Animated.View
-        style={[
-          styles.content,
-          { transform: [{ scale: pressScale }] },
-        ]}
+        style={[styles.content, { transform: [{ scale: pressScale }] }]}
       >
         <Animated.View style={styles.iconContainer}>
           <Animated.View
@@ -206,7 +198,9 @@ function TabButton({
             <Icon color={tint} size={21} strokeWidth={2} />
           </Animated.View>
         </Animated.View>
-        <Animated.Text style={[styles.label, { color: tint }]}>{label}</Animated.Text>
+        <Animated.Text style={[styles.label, { color: tint }]}>
+          {label}
+        </Animated.Text>
       </Animated.View>
     </Pressable>
   );

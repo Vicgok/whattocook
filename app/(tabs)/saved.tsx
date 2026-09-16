@@ -10,13 +10,14 @@ import {
 import { useRouter } from "expo-router";
 import { PlaceholderImage, colors, TabScreenHeader } from "@/components/ui";
 import { EmptyState } from "@/components/states";
-import { recipes } from "@/data/mockRecipes";
 import { useApp } from "@/context/AppContext";
+import { useRecipes } from "@/hooks/useRecipes";
 import { radius, spacing, typography } from "@/theme";
 
 export default function Saved() {
   const router = useRouter();
   const { savedRecipeIds, toggleSaved } = useApp();
+  const { data: recipes = [] } = useRecipes();
   const [search, setSearch] = useState("");
   const saved = useMemo(
     () =>
