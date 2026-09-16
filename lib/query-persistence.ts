@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { Query, QueryClient } from "@tanstack/react-query";
+import { dehydrate, type Query, type QueryClient } from "@tanstack/react-query";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import { CANONICAL_DATA_VERSION } from "@/lib/cache-version";
 export { CANONICAL_DATA_VERSION } from "@/lib/cache-version";
@@ -60,4 +60,30 @@ export function traceHydratedQueries(queryClient: QueryClient) {
         );
       }
     });
+}
+
+const userOwnedRoots = new Set([
+  "profile",
+  "user-preferences",
+  "pantry",
+  "saved-recipes",
+  "cooking-session",
+]);
+
+/** Removes one identity's data from memory and overwrites the persisted cache. */
+export async function clearUserOwnedCache(queryClient: QueryClient, userId: string) {
+  await queryClient.cancelQueries({
+    predicate: (query) =>
+      userOwnedRoots.has(String(query.queryKey[0])) && query.queryKey[1] === userId,
+  });
+  queryClient.removeQueries({
+    predicate: (query) =>
+      userOwnedRoots.has(String(query.queryKey[0])) && query.queryKey[1] === userId,
+  });
+  await queryPersister.persistClient({
+    timestamp: Date.now(),
+    buster: `schema-${QUERY_CACHE_SCHEMA_VERSION}`,
+    clientState: dehydrate(queryClient, { shouldDehydrateQuery: shouldPersistQuery }),
+  });
+  if (__DEV__) console.info(`[CACHE] old_user_cache_cleared userId=${userId.slice(0, 8)}`);
 }

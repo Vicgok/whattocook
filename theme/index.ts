@@ -37,6 +37,7 @@ export const radius = {
   card: 16,
   lg: 20,
   modal: 24,
+  panel: 56,
   pill: 999,
 } as const;
 export const typography = {

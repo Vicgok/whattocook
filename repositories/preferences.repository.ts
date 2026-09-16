@@ -1,6 +1,7 @@
 import type { UserPreferences } from "@/context/AppContext";
 import { getSupabaseClient } from "@/lib/supabase";
 import {
+  traceSupabaseHttp,
   traceSupabaseError,
   traceSupabaseRequest,
 } from "@/lib/supabase-request-tracer";
@@ -29,19 +30,33 @@ const toPreferences = (row: PreferencesRow): UserPreferences => ({
 
 export async function fetchPreferences(
   userId: string,
+  signal?: AbortSignal,
 ): Promise<UserPreferences | null> {
   const client = getSupabaseClient();
   if (!client) return null;
+  if (signal?.aborted) {
+    traceSupabaseHttp("preferences.get", "aborted", userId);
+    throw new Error("Preferences request cancelled before dispatch.");
+  }
   traceSupabaseRequest("preferences.get", "useUserPreferences");
-  const { data, error } = await client
+  // The installed PostgREST client does not expose a typed abortSignal API.
+  // TanStack cancellation plus this post-response check prevents a late result
+  // from being committed after an identity replacement.
+  traceSupabaseHttp("preferences.get", "started", userId);
+  const { data, error, status } = await client
     .from("user_preferences")
     .select("diet, allergies, nutrition_goals, cooking_preferences")
     .eq("user_id", userId)
     .maybeSingle();
+  if (signal?.aborted) {
+    traceSupabaseHttp("preferences.get", "aborted", userId);
+    throw new Error("Preferences request cancelled after dispatch.");
+  }
   if (error) {
     traceSupabaseError("preferences.get", error);
     throw error;
   }
+  traceSupabaseHttp("preferences.get", "completed", userId, status);
   return data ? toPreferences(data as PreferencesRow) : null;
 }
 

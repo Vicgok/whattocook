@@ -50,7 +50,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   } = useSupabaseSession();
   const onboarding = useDeviceOnboardingCompletion(userId ?? undefined);
   const [pendingSaveId, setPendingSaveId] = useState<string | null>(null);
-  const dataReady = Boolean(isReady && onboarding.ready && onboarding.completed);
+  const dataReady = Boolean(
+    isReady && onboarding.ready && onboarding.completed,
+  );
   const saved = useSavedRecipeIds(userId ?? undefined, dataReady);
   const remotePreferences = useUserPreferences(userId ?? undefined, dataReady);
   const remote = Boolean(isSupabaseConfigured && dataReady && userId);
