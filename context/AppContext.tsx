@@ -1,9 +1,13 @@
 import { createContext, ReactNode, useContext, useState } from "react";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { isSupabaseConfigured, getSupabaseClient } from "@/lib/supabase";
+import * as Linking from "expo-linking";
 import { useSavedRecipeIds } from "@/hooks/useSavedRecipes";
 import { useUserPreferences } from "@/hooks/usePreferences";
 import { useSupabaseSession } from "@/context/SupabaseSessionContext";
 
+export type AvoidedIngredient =
+  | { type: "canonical"; ingredientId: string }
+  | { type: "custom"; value: string };
 export type UserPreferences = {
   dietPreferences: string[];
   nutritionGoals: string[];
@@ -13,87 +17,92 @@ export type UserPreferences = {
   notificationsEnabled: boolean;
   appearance: string;
 };
-export type AvoidedIngredient =
-  | { type: "canonical"; ingredientId: string }
-  | { type: "custom"; value: string };
-
-type AppContextValue = {
-  isAuthenticated: boolean;
-  user: { name: string; email: string } | null;
-  savedRecipeIds: string[];
-  preferences: UserPreferences;
-  pendingSaveId: string | null;
-  signIn: (name?: string, email?: string) => void;
-  signOut: () => void;
-  toggleSaved: (id: string) => void;
-  setPendingSaveId: (id: string | null) => void;
-  updatePreferences: (changes: Partial<UserPreferences>) => void;
-};
-
-const AppContext = createContext<AppContextValue | undefined>(undefined);
 const initialPreferences: UserPreferences = {
   dietPreferences: ["No preference"],
-  nutritionGoals: ["High protein"],
+  nutritionGoals: [],
   allergies: [],
   avoidedIngredients: [],
   units: "Metric",
   notificationsEnabled: true,
   appearance: "System default",
 };
-
+type AppContextValue = {
+  isAuthenticated: boolean;
+  user: { name: string; email: string } | null;
+  savedRecipeIds: string[];
+  preferences: UserPreferences;
+  pendingSaveId: string | null;
+  sendMagicLink: (email: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  toggleSaved: (id: string) => void;
+  setPendingSaveId: (id: string | null) => void;
+  updatePreferences: (changes: Partial<UserPreferences>) => void;
+};
+const AppContext = createContext<AppContextValue | undefined>(undefined);
 export function AppProvider({ children }: { children: ReactNode }) {
-  const { userId, isReady } = useSupabaseSession();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<AppContextValue["user"]>(null);
-  const [savedRecipeIds, setSavedRecipeIds] = useState([
-    "chicken-egg-rice-bowl",
-    "spicy-chicken-fried-rice",
-    "quick-egg-chicken-bowl",
-  ]);
-  const [preferences, setPreferences] = useState(initialPreferences);
+  const {
+    user: authUser,
+    userId,
+    isReady,
+    isSignedIn,
+    signOut: supabaseSignOut,
+  } = useSupabaseSession();
   const [pendingSaveId, setPendingSaveId] = useState<string | null>(null);
   const saved = useSavedRecipeIds(userId ?? undefined, isReady);
   const remotePreferences = useUserPreferences(userId ?? undefined, isReady);
-  const useRemoteData = Boolean(isSupabaseConfigured && isReady && userId);
-  const currentSavedRecipeIds = useRemoteData ? saved.data ?? [] : savedRecipeIds;
-  const currentPreferences = useRemoteData ? remotePreferences.data ?? initialPreferences : preferences;
-  const signIn = (name = "Vignesh", email = "vignesh@example.com") => {
-    setIsAuthenticated(true);
-    setUser({ name, email });
+  const remote = Boolean(isSupabaseConfigured && isReady && userId);
+  const preferences = remote
+    ? (remotePreferences.data ?? initialPreferences)
+    : initialPreferences;
+  const sendMagicLink = async (email: string) => {
+    const client = getSupabaseClient();
+    if (!client) throw new Error("Supabase is not configured.");
+    const { error } = await client.auth.signInWithOtp({
+      email: email.trim(),
+      options: { emailRedirectTo: Linking.createURL("auth/email-complete") },
+    });
+    if (error) throw error;
   };
-  const signOut = () => {
-    setIsAuthenticated(false);
-    setUser(null);
-    setPendingSaveId(null);
-  };
-  const toggleSaved = (id: string) =>
-    useRemoteData
-      ? (currentSavedRecipeIds.includes(id) ? saved.unsave.mutate(id) : saved.save.mutate(id))
-      : setSavedRecipeIds((old) => old.includes(id) ? old.filter((saved) => saved !== id) : [...old, id]);
-  const updatePreferences = (changes: Partial<UserPreferences>) =>
-    useRemoteData
-      ? remotePreferences.update.mutate({ ...currentPreferences, ...changes })
-      : setPreferences((old) => ({ ...old, ...changes }));
   return (
     <AppContext.Provider
       value={{
-        isAuthenticated,
-        user,
-        savedRecipeIds: currentSavedRecipeIds,
-        preferences: currentPreferences,
+        isAuthenticated: isSignedIn,
+        user:
+          isSignedIn && authUser
+            ? {
+                name: String(
+                  authUser.user_metadata.display_name ??
+                    authUser.email ??
+                    "Member",
+                ),
+                email: authUser.email ?? "",
+              }
+            : null,
+        savedRecipeIds: remote ? (saved.data ?? []) : [],
+        preferences,
         pendingSaveId,
-        signIn,
-        signOut,
-        toggleSaved,
+        sendMagicLink,
+        signOut: async () => {
+          setPendingSaveId(null);
+          await supabaseSignOut();
+        },
+        toggleSaved: (id) => {
+          if (remote)
+            (saved.data ?? []).includes(id)
+              ? saved.unsave.mutate(id)
+              : saved.save.mutate(id);
+        },
         setPendingSaveId,
-        updatePreferences,
+        updatePreferences: (changes) => {
+          if (remote)
+            remotePreferences.update.mutate({ ...preferences, ...changes });
+        },
       }}
     >
       {children}
     </AppContext.Provider>
   );
 }
-
 export function useApp() {
   const value = useContext(AppContext);
   if (!value) throw new Error("useApp must be used inside AppProvider");

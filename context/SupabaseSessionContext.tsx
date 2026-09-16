@@ -1,11 +1,40 @@
-import { ReactNode, createContext, useContext, useEffect, useState } from "react";
+import {
+  ReactNode,
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import type { Session, User } from "@supabase/supabase-js";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 import { traceSupabaseRequest } from "@/lib/supabase-request-tracer";
 import { createAnonymousSessionBootstrap } from "@/lib/auth-bootstrap";
-import { traceSupabaseError, traceSupabaseSkip } from "@/lib/supabase-request-tracer";
+import {
+  traceSupabaseError,
+  traceSupabaseSkip,
+} from "@/lib/supabase-request-tracer";
 
-type SupabaseSessionValue = { userId: string | null; isReady: boolean };
-const SupabaseSessionContext = createContext<SupabaseSessionValue>({ userId: null, isReady: !isSupabaseConfigured });
+type SupabaseSessionValue = {
+  userId: string | null;
+  isReady: boolean;
+  session: Session | null;
+  user: User | null;
+  isAnonymous: boolean;
+  isSignedIn: boolean;
+  signOut: () => Promise<void>;
+};
+const emptyState = {
+  userId: null,
+  isReady: !isSupabaseConfigured,
+  session: null,
+  user: null,
+  isAnonymous: false,
+  isSignedIn: false,
+};
+const SupabaseSessionContext = createContext<SupabaseSessionValue>({
+  ...emptyState,
+  signOut: async () => undefined,
+});
 /**
  * Shared across provider mounts (including React Strict Mode's development
  * remount). Restoring storage and anonymous sign-in are one bootstrap, so two
@@ -13,12 +42,17 @@ const SupabaseSessionContext = createContext<SupabaseSessionValue>({ userId: nul
  */
 const bootstrapSession = createAnonymousSessionBootstrap(
   getSupabaseClient,
-  () => traceSupabaseRequest("auth.signInAnonymously", "SupabaseSessionProvider.bootstrap"),
+  () =>
+    traceSupabaseRequest(
+      "auth.signInAnonymously",
+      "SupabaseSessionProvider.bootstrap",
+    ),
 );
 
 /** Establishes an invisible anonymous identity for guest pantry persistence. */
 export function SupabaseSessionProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<SupabaseSessionValue>({ userId: null, isReady: !isSupabaseConfigured });
+  const [state, setState] =
+    useState<Omit<SupabaseSessionValue, "signOut">>(emptyState);
   useEffect(() => {
     const client = getSupabaseClient();
     if (!client) {
@@ -29,31 +63,68 @@ export function SupabaseSessionProvider({ children }: { children: ReactNode }) {
     const pendingUpdates = new Set<ReturnType<typeof setTimeout>>();
     // Supabase can synchronously emit INITIAL_SESSION while the provider is
     // mounting. Schedule the update after React's current commit instead.
-    const setUser = (userId: string | null) => {
+    const setUser = (session: Session | null) => {
       const timer = setTimeout(() => {
         pendingUpdates.delete(timer);
-        if (active) setState({ userId, isReady: true });
+        const user = session?.user ?? null;
+        if (active)
+          setState({
+            userId: user?.id ?? null,
+            session,
+            user,
+            isReady: true,
+            isAnonymous: user?.is_anonymous === true,
+            isSignedIn: Boolean(user && !user.is_anonymous),
+          });
       }, 0);
       pendingUpdates.add(timer);
     };
     // Requires Supabase Dashboard > Auth > Providers > Anonymous sign-ins.
-    bootstrapSession().then((userId) => {
-      if (__DEV__) console.info(`[AUTH STATE] authReady=true userId=${userId?.slice(0, 8) ?? "none"}`);
-      setUser(userId);
-    }).catch((error) => {
-      traceSupabaseError("auth.bootstrap", error);
-      setUser(null);
-    });
-    const { data: subscription } = client.auth.onAuthStateChange((_event, session) => {
-      if (__DEV__) console.info(`[AUTH STATE] authReady=true userId=${session?.user.id.slice(0, 8) ?? "none"} isAnonymous=${session?.user.is_anonymous ?? false}`);
-      setUser(session?.user.id ?? null);
-    });
+    bootstrapSession()
+      .then(async (userId) => {
+        if (__DEV__)
+          console.info(
+            `[AUTH STATE] authReady=true userId=${userId?.slice(0, 8) ?? "none"}`,
+          );
+        const { data } = await client.auth.getSession();
+        setUser(data.session);
+      })
+      .catch((error) => {
+        traceSupabaseError("auth.bootstrap", error);
+        setUser(null);
+      });
+    const { data: subscription } = client.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === "SIGNED_OUT") {
+          // The product remains usable after logout, but under a brand-new guest identity.
+          client.auth
+            .signInAnonymously()
+            .catch((error) =>
+              traceSupabaseError("auth.signInAnonymously.afterSignOut", error),
+            );
+          return;
+        }
+        if (__DEV__)
+          console.info(
+            `[AUTH STATE] authReady=true userId=${session?.user.id.slice(0, 8) ?? "none"} isAnonymous=${session?.user.is_anonymous ?? false}`,
+          );
+        setUser(session);
+      },
+    );
     return () => {
       active = false;
       pendingUpdates.forEach(clearTimeout);
       subscription.subscription.unsubscribe();
     };
   }, []);
-  return <SupabaseSessionContext.Provider value={state}>{children}</SupabaseSessionContext.Provider>;
+  const signOut = async () => {
+    const client = getSupabaseClient();
+    if (client) await client.auth.signOut();
+  };
+  return (
+    <SupabaseSessionContext.Provider value={{ ...state, signOut }}>
+      {children}
+    </SupabaseSessionContext.Provider>
+  );
 }
 export const useSupabaseSession = () => useContext(SupabaseSessionContext);

@@ -52,7 +52,11 @@ export function PantryProvider({ children }: { children: ReactNode }) {
   };
   return (
     <PantryContext.Provider
-      value={{ pantry: usePersistedPantry ? remotePantry ?? [] : pantry, addIngredients, removeIngredient }}
+      value={{
+        pantry: usePersistedPantry ? (remotePantry ?? []) : pantry,
+        addIngredients,
+        removeIngredient,
+      }}
     >
       {children}
     </PantryContext.Provider>

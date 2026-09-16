@@ -1,8 +1,13 @@
 type BootstrapUser = { id: string };
 type BootstrapClient = {
   auth: {
-    getSession: () => Promise<{ data: { session: { user: BootstrapUser } | null } }>;
-    signInAnonymously: () => Promise<{ data: { user: BootstrapUser | null }; error: Error | null }>;
+    getSession: () => Promise<{
+      data: { session: { user: BootstrapUser } | null };
+    }>;
+    signInAnonymously: () => Promise<{
+      data: { user: BootstrapUser | null };
+      error: Error | null;
+    }>;
   };
 };
 

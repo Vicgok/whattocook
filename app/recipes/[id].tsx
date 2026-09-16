@@ -124,7 +124,10 @@ export default function RecipeDetails() {
           </Text>
         </View>
       </Animated.ScrollView>
-      <TopScrollProtection backgroundColor={colors.background} scrollY={scrollY} />
+      <TopScrollProtection
+        backgroundColor={colors.background}
+        scrollY={scrollY}
+      />
       <View style={[styles.safeHeader, { paddingTop: insets.top }]}>
         <View style={styles.header}>
           <Pressable
@@ -172,20 +175,20 @@ export default function RecipeDetails() {
           <View style={styles.sheet}>
             <Text style={styles.sheetTitle}>Save this recipe?</Text>
             <Text style={styles.whyText}>
-              Create an account or sign in to keep your saved recipes.
+              Sign in to keep this recipe with you across devices.
             </Text>
             <PrimaryButton
-              label="Create account"
+              label="Continue to sign in"
               onPress={() => {
                 setPrompt(false);
-                router.push("/auth/sign-up");
+                router.push({ pathname: "/auth/sign-in", params: { returnTo: `/recipes/${id}` } });
               }}
             />
             <SecondaryButton
               label="Sign in"
               onPress={() => {
                 setPrompt(false);
-                router.push("/auth/sign-in");
+                router.push({ pathname: "/auth/sign-in", params: { returnTo: `/recipes/${id}` } });
               }}
             />
             <Pressable onPress={() => setPrompt(false)}>

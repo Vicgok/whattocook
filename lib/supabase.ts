@@ -9,13 +9,19 @@ const hasValidProjectUrl = (() => {
   if (!url) return false;
   try {
     const parsed = new URL(url);
-    return parsed.protocol === "https:" && parsed.hostname.endsWith(".supabase.co") && parsed.pathname === "/";
+    return (
+      parsed.protocol === "https:" &&
+      parsed.hostname.endsWith(".supabase.co") &&
+      parsed.pathname === "/"
+    );
   } catch {
     return false;
   }
 })();
 
-export const isSupabaseConfigured = Boolean(hasValidProjectUrl && publishableKey);
+export const isSupabaseConfigured = Boolean(
+  hasValidProjectUrl && publishableKey,
+);
 
 const projectRef = (() => {
   if (!url) return null;
@@ -46,7 +52,10 @@ let client: SupabaseClient | null = null;
  */
 export function getSupabaseClient(): SupabaseClient | null {
   if (!isSupabaseConfigured) {
-    if (__DEV__) console.warn("[SUPABASE SKIP] domain=client reason=supabase_not_configured");
+    if (__DEV__)
+      console.warn(
+        "[SUPABASE SKIP] domain=client reason=supabase_not_configured",
+      );
     return null;
   }
   if (!client) {

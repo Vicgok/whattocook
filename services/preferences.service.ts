@@ -1,1 +1,4 @@
-export { fetchPreferences, upsertPreferences } from "@/repositories/preferences.repository";
+export {
+  fetchPreferences,
+  upsertPreferences,
+} from "@/repositories/preferences.repository";

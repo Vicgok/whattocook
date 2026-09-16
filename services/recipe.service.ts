@@ -6,5 +6,7 @@ export async function listRecipes(): Promise<Recipe[]> {
   return (await fetchRecipes()) ?? localRecipes;
 }
 export async function getRecipe(id: string): Promise<Recipe | undefined> {
-  return (await fetchRecipe(id)) ?? localRecipes.find((recipe) => recipe.id === id);
+  return (
+    (await fetchRecipe(id)) ?? localRecipes.find((recipe) => recipe.id === id)
+  );
 }

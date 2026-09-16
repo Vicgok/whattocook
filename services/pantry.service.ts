@@ -1,1 +1,5 @@
-export { deletePantryIngredient, fetchPantryItems, upsertPantryIngredients } from "@/repositories/pantry.repository";
+export {
+  deletePantryIngredient,
+  fetchPantryItems,
+  upsertPantryIngredients,
+} from "@/repositories/pantry.repository";

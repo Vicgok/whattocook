@@ -17,27 +17,47 @@ export const queryPersister = createAsyncStoragePersister({
 export const shouldPersistQuery = (query: Query) =>
   query.meta?.persist === true && query.state.status === "success";
 
-export function traceCache(domain: string, source: "persisted_cache" | "memory_cache" | "network", status: "fresh" | "stale" | "miss") {
+export function traceCache(
+  domain: string,
+  source: "persisted_cache" | "memory_cache" | "network",
+  status: "fresh" | "stale" | "miss",
+) {
   if (!__DEV__) return;
-  console.info(`[DATA] domain=${domain} source=${source} status=${status} network=${source === "network"}`);
+  console.info(
+    `[DATA] domain=${domain} source=${source} status=${status} network=${source === "network"}`,
+  );
 }
 
 /** Versioned keys make old canonical payloads unusable; remove them after hydration. */
 export function removeLegacyCanonicalQueries(queryClient: QueryClient) {
-  const canonicalRoots = new Set(["ingredients", "ingredient-categories", "recipes", "recipe"]);
+  const canonicalRoots = new Set([
+    "ingredients",
+    "ingredient-categories",
+    "recipes",
+    "recipe",
+  ]);
   queryClient.removeQueries({
     predicate: (query) => {
       const [root, version] = query.queryKey;
-      return typeof root === "string" && canonicalRoots.has(root) && version !== CANONICAL_DATA_VERSION;
+      return (
+        typeof root === "string" &&
+        canonicalRoots.has(root) &&
+        version !== CANONICAL_DATA_VERSION
+      );
     },
   });
 }
 
 export function traceHydratedQueries(queryClient: QueryClient) {
   if (!__DEV__) return;
-  queryClient.getQueryCache().getAll().forEach((query) => {
-    if (query.meta?.persist === true && query.state.status === "success") {
-      console.info(`[DATA] domain=${String(query.queryKey[0])} source=persisted_cache status=fresh network=false`);
-    }
-  });
+  queryClient
+    .getQueryCache()
+    .getAll()
+    .forEach((query) => {
+      if (query.meta?.persist === true && query.state.status === "success") {
+        console.info(
+          `[DATA] domain=${String(query.queryKey[0])} source=persisted_cache status=fresh network=false`,
+        );
+      }
+    });
 }

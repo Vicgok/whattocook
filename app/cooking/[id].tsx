@@ -11,7 +11,10 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRecipe } from "@/hooks/useRecipes";
-import { initialCookingStepIndex, orderRecipeSteps } from "@/domain/cooking/step-navigation";
+import {
+  initialCookingStepIndex,
+  orderRecipeSteps,
+} from "@/domain/cooking/step-navigation";
 import { useSupabaseSession } from "@/context/SupabaseSessionContext";
 import { useCookingSession } from "@/hooks/useCookingSession";
 import { getIngredientById } from "@/data/ingredients";
@@ -38,9 +41,17 @@ export default function Cooking() {
   }, [recipe?.id]);
   useEffect(() => {
     const persistedStep = cookingSession.data?.currentStep;
-    if (persistedStep != null && persistedStep >= 0 && persistedStep < orderedSteps.length)
+    if (
+      persistedStep != null &&
+      persistedStep >= 0 &&
+      persistedStep < orderedSteps.length
+    )
       setStep(persistedStep);
-  }, [cookingSession.data?.id, cookingSession.data?.currentStep, orderedSteps.length]);
+  }, [
+    cookingSession.data?.id,
+    cookingSession.data?.currentStep,
+    orderedSteps.length,
+  ]);
   const [sheet, setSheet] = useState<"ingredients" | "timer" | "done" | null>(
     null,
   );
@@ -58,11 +69,16 @@ export default function Cooking() {
   const current = orderedSteps[step];
   const setCookingStep = (nextStep: number) => {
     setStep(nextStep);
-    if (cookingSession.data) cookingSession.updateStep.mutate({ sessionId: cookingSession.data.id, step: nextStep });
+    if (cookingSession.data)
+      cookingSession.updateStep.mutate({
+        sessionId: cookingSession.data.id,
+        step: nextStep,
+      });
   };
   const finish = () => {
     if (step === orderedSteps.length - 1) {
-      if (cookingSession.data) cookingSession.complete.mutate(cookingSession.data.id);
+      if (cookingSession.data)
+        cookingSession.complete.mutate(cookingSession.data.id);
       setSheet("done");
     } else setCookingStep(step + 1);
   };

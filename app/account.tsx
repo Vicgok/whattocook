@@ -18,8 +18,7 @@ export default function Account() {
         text: "Sign out",
         style: "destructive",
         onPress: () => {
-          signOut();
-          router.replace("/(tabs)/profile");
+          void signOut().then(() => router.replace("/(tabs)/profile"));
         },
       },
     ]);
@@ -34,29 +33,32 @@ export default function Account() {
     );
   return (
     <View style={styles.page}>
-    <Animated.ScrollView
-      style={styles.scroll}
-      contentContainerStyle={[
-        styles.content,
-        { paddingTop: insets.top + spacing.lg },
-      ]}
-      onScroll={Animated.event(
-        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-        { useNativeDriver: true },
-      )}
-      scrollEventThrottle={16}
-    >
-      <Text style={styles.title}>Account</Text>
-      <View style={styles.card}>
-        <Text style={styles.label}>Name</Text>
-        <Text style={styles.value}>{user?.name ?? "Guest"}</Text>
-        <Text style={styles.label}>Email</Text>
-        <Text style={styles.value}>{user?.email ?? "Not signed in"}</Text>
-      </View>
-      <PrimaryButton label="Sign out" onPress={leave} />
-      <SecondaryButton label="Delete account" onPress={remove} />
-    </Animated.ScrollView>
-    <TopScrollProtection backgroundColor={colors.background} scrollY={scrollY} />
+      <Animated.ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + spacing.lg },
+        ]}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true },
+        )}
+        scrollEventThrottle={16}
+      >
+        <Text style={styles.title}>Account</Text>
+        <View style={styles.card}>
+          <Text style={styles.label}>Name</Text>
+          <Text style={styles.value}>{user?.name ?? "Guest"}</Text>
+          <Text style={styles.label}>Email</Text>
+          <Text style={styles.value}>{user?.email ?? "Not signed in"}</Text>
+        </View>
+        <PrimaryButton label="Sign out" onPress={leave} />
+        <SecondaryButton label="Delete account" onPress={remove} />
+      </Animated.ScrollView>
+      <TopScrollProtection
+        backgroundColor={colors.background}
+        scrollY={scrollY}
+      />
     </View>
   );
 }

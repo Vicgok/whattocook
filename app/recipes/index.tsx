@@ -47,17 +47,16 @@ export default function RecipeResults() {
   }, [state]);
   const matches = useMemo(
     () =>
-      rankRecipesForPantry(recipes, pantry, ingredients)
-        .sort((a, b) =>
-          filter === "Fastest"
-            ? a.recipe.timeMinutes - b.recipe.timeMinutes
-            : filter === "High protein"
-              ? b.recipe.protein - a.recipe.protein
-              : b.match.matchPercentage - a.match.matchPercentage ||
-                a.match.missingIngredients.length -
-                  b.match.missingIngredients.length ||
-                a.recipe.timeMinutes - b.recipe.timeMinutes,
-        ),
+      rankRecipesForPantry(recipes, pantry, ingredients).sort((a, b) =>
+        filter === "Fastest"
+          ? a.recipe.timeMinutes - b.recipe.timeMinutes
+          : filter === "High protein"
+            ? b.recipe.protein - a.recipe.protein
+            : b.match.matchPercentage - a.match.matchPercentage ||
+              a.match.missingIngredients.length -
+                b.match.missingIngredients.length ||
+              a.recipe.timeMinutes - b.recipe.timeMinutes,
+      ),
     [filter, pantry],
   );
   const pantryNames = pantry
@@ -66,74 +65,80 @@ export default function RecipeResults() {
   const retry = () => setState("loading");
   return (
     <View style={styles.page}>
-    <Animated.ScrollView
-      style={styles.scroll}
-      contentContainerStyle={[
-        styles.content,
-        { paddingTop: insets.top + spacing.base },
-      ]}
-      onScroll={Animated.event(
-        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-        { useNativeDriver: true },
-      )}
-      scrollEventThrottle={16}
-    >
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.back}>
-          <Text>‹</Text>
-        </Pressable>
-        <Text style={styles.title}>Meal ideas</Text>
-        <View style={{ width: 44 }} />
-      </View>
-      <TextInput value={query} onChangeText={setQuery} style={styles.query} />
-      <OfflineBanner onRetry={retry} />
-      {state === "loading" ? (
-        <LoadingRecipeCards />
-      ) : state === "error" ? (
-        <ErrorState onRetry={retry} onBack={() => router.replace("/(tabs)")} />
-      ) : state === "empty" ? (
-        <EmptyState
-          title="No good matches found"
-          text="Try changing your request or adding a few more ingredients."
-          actionLabel="Add ingredients"
-          onAction={() => router.push("/(tabs)/pantry")}
-        />
-      ) : (
-        <>
-          <Text style={styles.heading}>Best matches</Text>
-          <Text style={styles.support}>
-            Using {pantryNames.join(", ") || "your pantry"}
-          </Text>
-          <View style={styles.filters}>
-            {["Best match", "Fastest", "High protein"].map((item) => (
-              <SuggestionChip
-                key={item}
-                label={item}
-                selected={filter === item}
-                onPress={() => setFilter(item)}
-              />
-            ))}
-          </View>
-          <View style={styles.cards}>
-            {matches.map(({ recipe, match }) => (
-              <RecipeCard
-                key={recipe.id}
-                recipe={recipe}
-                match={match}
-                onPress={() => router.push(`/recipes/${recipe.id}`)}
-              />
-            ))}
-          </View>
-          <Pressable onPress={() => setState("empty")}>
-            <Text style={styles.test}>Show no-results state</Text>
+      <Animated.ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + spacing.base },
+        ]}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true },
+        )}
+        scrollEventThrottle={16}
+      >
+        <View style={styles.header}>
+          <Pressable onPress={() => router.back()} style={styles.back}>
+            <Text>‹</Text>
           </Pressable>
-          <Pressable onPress={() => setState("error")}>
-            <Text style={styles.test}>Show error state</Text>
-          </Pressable>
-        </>
-      )}
-    </Animated.ScrollView>
-    <TopScrollProtection backgroundColor={colors.background} scrollY={scrollY} />
+          <Text style={styles.title}>Meal ideas</Text>
+          <View style={{ width: 44 }} />
+        </View>
+        <TextInput value={query} onChangeText={setQuery} style={styles.query} />
+        <OfflineBanner onRetry={retry} />
+        {state === "loading" ? (
+          <LoadingRecipeCards />
+        ) : state === "error" ? (
+          <ErrorState
+            onRetry={retry}
+            onBack={() => router.replace("/(tabs)")}
+          />
+        ) : state === "empty" ? (
+          <EmptyState
+            title="No good matches found"
+            text="Try changing your request or adding a few more ingredients."
+            actionLabel="Add ingredients"
+            onAction={() => router.push("/(tabs)/pantry")}
+          />
+        ) : (
+          <>
+            <Text style={styles.heading}>Best matches</Text>
+            <Text style={styles.support}>
+              Using {pantryNames.join(", ") || "your pantry"}
+            </Text>
+            <View style={styles.filters}>
+              {["Best match", "Fastest", "High protein"].map((item) => (
+                <SuggestionChip
+                  key={item}
+                  label={item}
+                  selected={filter === item}
+                  onPress={() => setFilter(item)}
+                />
+              ))}
+            </View>
+            <View style={styles.cards}>
+              {matches.map(({ recipe, match }) => (
+                <RecipeCard
+                  key={recipe.id}
+                  recipe={recipe}
+                  match={match}
+                  onPress={() => router.push(`/recipes/${recipe.id}`)}
+                />
+              ))}
+            </View>
+            <Pressable onPress={() => setState("empty")}>
+              <Text style={styles.test}>Show no-results state</Text>
+            </Pressable>
+            <Pressable onPress={() => setState("error")}>
+              <Text style={styles.test}>Show error state</Text>
+            </Pressable>
+          </>
+        )}
+      </Animated.ScrollView>
+      <TopScrollProtection
+        backgroundColor={colors.background}
+        scrollY={scrollY}
+      />
     </View>
   );
 }

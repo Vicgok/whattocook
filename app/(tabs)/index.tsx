@@ -33,8 +33,7 @@ export default function Home() {
   const visiblePantry = pantry.slice(0, 4);
   const hiddenPantryCount = Math.max(0, pantry.length - visiblePantry.length);
   const recommendations = useMemo(
-    () =>
-      rankRecipesForPantry(recipes, pantry, ingredients),
+    () => rankRecipesForPantry(recipes, pantry, ingredients),
     [pantry],
   );
   const bestMatch = recommendations[0];
@@ -220,7 +219,10 @@ export default function Home() {
           </View>
         ) : null}
       </Animated.ScrollView>
-      <TopScrollProtection backgroundColor={palette.background} scrollY={scrollY} />
+      <TopScrollProtection
+        backgroundColor={palette.background}
+        scrollY={scrollY}
+      />
     </KeyboardAvoidingView>
   );
 }
