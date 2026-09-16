@@ -8,9 +8,6 @@
     "android": {
       "package": "com.whattocook.wireframe"
     },
-    "plugins": [
-      "expo-router",
-      "expo-splash-screen"
-    ]
+    "plugins": ["expo-router", "expo-splash-screen"]
   }
 }

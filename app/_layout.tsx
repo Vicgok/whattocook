@@ -1,4 +1,5 @@
 import { Stack } from "expo-router";
+import { useEffect } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -17,10 +18,13 @@ import {
   traceHydratedQueries,
 } from "@/lib/query-persistence";
 
-// The root boot gate hides this only after auth, cache, and onboarding resolve.
+if (__DEV__) console.info("[BOOT] JS initialized");
+if (__DEV__) console.info("[BOOT] Cache hydration started");
+// AppEntryGuard is the only splash owner and hides it after navigation readiness.
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 export default function RootLayout() {
+  useEffect(() => { if (__DEV__) console.info("[BOOT] RootLayout mounted"); }, []);
   return (
     <SafeAreaProvider>
       <PersistQueryClientProvider
@@ -32,26 +36,33 @@ export default function RootLayout() {
           dehydrateOptions: { shouldDehydrateQuery: shouldPersistQuery },
         }}
         onSuccess={() => {
+          if (__DEV__) console.info("[BOOT] Cache hydration completed");
           removeLegacyCanonicalQueries(queryClient);
           traceHydratedQueries(queryClient);
         }}
+        onError={() => { if (__DEV__) console.warn("[BOOT] Cache hydration failed; continuing without persisted query data"); }}
       >
         <SupabaseSessionProvider>
           <IdentityCacheGuard>
             <AppProvider>
               <PantryProvider>
                 <AppEntryGuard>
-                  {(initialRoute) => <>
-                  <StatusBar style="dark" />
-                  <Stack initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
-                    <Stack.Screen name="(tabs)" />
-                    <Stack.Screen name="recipes" />
-                    <Stack.Screen name="cooking" />
-                    <Stack.Screen name="auth" />
-                    <Stack.Screen name="account" />
-                    <Stack.Screen name="onboarding" />
-                  </Stack>
-                  </>}
+                  {(initialRoute) => (
+                    <>
+                      <StatusBar style="dark" />
+                      <Stack
+                        initialRouteName={initialRoute}
+                        screenOptions={{ headerShown: false }}
+                      >
+                        <Stack.Screen name="(tabs)" />
+                        <Stack.Screen name="recipes" />
+                        <Stack.Screen name="cooking" />
+                        <Stack.Screen name="auth" />
+                        <Stack.Screen name="account" />
+                        <Stack.Screen name="onboarding" />
+                      </Stack>
+                    </>
+                  )}
                 </AppEntryGuard>
               </PantryProvider>
             </AppProvider>

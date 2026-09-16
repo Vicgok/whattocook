@@ -1,5 +1,6 @@
 type RequestSource =
   | "auth.signInAnonymously"
+  | "auth.getUser"
   | "ingredients.list"
   | "ingredientCategories.list"
   | "pantry.list"
@@ -25,6 +26,11 @@ const requestDetails: Record<
     endpoint: "/auth/v1",
     table: "auth",
     operation: "POST signInAnonymously",
+  },
+  "auth.getUser": {
+    endpoint: "/auth/v1/user",
+    table: "auth",
+    operation: "GET validate current identity",
   },
   "ingredients.list": {
     endpoint: "/rest/v1/ingredients",
@@ -121,8 +127,19 @@ export function traceSupabaseRequest(
   counts.set(source, count);
   const request = requestDetails[source];
   console.info(
-    `[SUPABASE NETWORK] #${count} source=${source} endpoint=${request.endpoint} table=${request.table} operation=${request.operation} trigger=${trigger} time=${new Date().toISOString()}${detail ? ` detail=${detail}` : ""}`,
+    `[REPOSITORY] #${count} source=${source} endpoint=${request.endpoint} table=${request.table} operation=${request.operation} trigger=${trigger} time=${new Date().toISOString()}${detail ? ` detail=${detail}` : ""}`,
   );
+}
+
+/** A transport attempt/completion, distinct from repository invocation. */
+export function traceSupabaseHttp(source: RequestSource, phase: "started" | "completed" | "aborted", userId: string, status?: number) {
+  if (!__DEV__) return;
+  console.info(`[HTTP] source=${source} phase=${phase} userId=${userId.slice(0, 8)}${status ? ` status=${status}` : ""}`);
+}
+
+export function traceQueryGate(domain: string, enabled: boolean, userId?: string, reason?: string) {
+  if (!__DEV__) return;
+  console.info(`[QUERY] domain=${domain} enabled=${enabled} userId=${userId?.slice(0, 8) ?? "none"}${reason ? ` reason=${reason}` : ""}`);
 }
 
 /** Logs only actual query-function executions; cache reads never call this. */
@@ -149,16 +166,23 @@ export function traceSupabaseSkip(
 
 export function traceSupabaseError(source: string, error: unknown) {
   if (!__DEV__) return;
-  const record = error && typeof error === "object" ? error as Record<string, unknown> : null;
-  const message = error instanceof Error
-    ? error.message
-    : typeof record?.message === "string"
-      ? record.message
-      : String(error);
-  const detail = typeof record?.details === "string" ? ` details=${record.details}` : "";
+  const record =
+    error && typeof error === "object"
+      ? (error as Record<string, unknown>)
+      : null;
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof record?.message === "string"
+        ? record.message
+        : String(error);
+  const detail =
+    typeof record?.details === "string" ? ` details=${record.details}` : "";
   const hint = typeof record?.hint === "string" ? ` hint=${record.hint}` : "";
   const code = typeof record?.code === "string" ? ` code=${record.code}` : "";
-  console.error(`[SUPABASE ERROR] source=${source} message=${message}${code}${detail}${hint}`);
+  console.error(
+    `[SUPABASE ERROR] source=${source} message=${message}${code}${detail}${hint}`,
+  );
 }
 
 export function getSupabaseRequestCounts(): Readonly<Record<string, number>> {

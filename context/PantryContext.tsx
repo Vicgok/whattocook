@@ -25,10 +25,14 @@ export function PantryProvider({ children }: { children: ReactNode }) {
   const [pantry, setPantry] = useState<PantryItem[]>(() =>
     defaultPantryIngredientIds.map(createPantryItem),
   );
-  const dataReady = Boolean(isReady && onboarding.ready && onboarding.completed);
+  const dataReady = Boolean(
+    isReady && onboarding.ready && onboarding.completed,
+  );
   const remote = useRemotePantry(userId ?? undefined, dataReady);
   const remotePantry = remote.data;
-  const usePersistedPantry = Boolean(isSupabaseConfigured && userId && dataReady);
+  const usePersistedPantry = Boolean(
+    isSupabaseConfigured && userId && dataReady,
+  );
   const addIngredients = (ingredientIds: string[]) => {
     if (usePersistedPantry) {
       remote.addIngredients.mutate(ingredientIds);

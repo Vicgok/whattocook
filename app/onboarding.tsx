@@ -1,47 +1,771 @@
-import { useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  AccessibilityInfo,
+  Alert,
+  Animated,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { useRouter } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Info } from "lucide-react-native";
-import { PrimaryButton, SecondaryButton, colors } from "@/components/ui";
+import { Check, Clock3, Info, Sparkles } from "lucide-react-native";
+import { PrimaryButton, colors } from "@/components/ui";
 import { radius, spacing, typography } from "@/theme";
 import { useSupabaseSession } from "@/context/SupabaseSessionContext";
-import { useUserPreferences } from "@/hooks/usePreferences";
-import { useProfile } from "@/hooks/useProfile";
-import { useDeviceOnboardingCompletion } from "@/lib/onboarding-completion";
+import {
+  markDeviceOnboardingCompleted,
+} from "@/lib/onboarding-completion";
+import { queryKeys } from "@/lib/query-keys";
+import { completeOnboarding } from "@/repositories/profile.repository";
+import { upsertPreferences } from "@/services/preferences.service";
 import type { UserPreferences } from "@/context/AppContext";
 
-const defaultPreferences: UserPreferences = { dietPreferences: ["No preference"], nutritionGoals: [], allergies: [], avoidedIngredients: [], units: "Metric", notificationsEnabled: true, appearance: "System default" };
-const diets = ["No preference", "Vegetarian", "Non-vegetarian", "Vegan", "Eggetarian"];
+const defaultPreferences: UserPreferences = {
+  dietPreferences: ["No preference"],
+  nutritionGoals: [],
+  allergies: [],
+  avoidedIngredients: [],
+  units: "Metric",
+  notificationsEnabled: true,
+  appearance: "System default",
+};
+const diets = [
+  "No preference",
+  "Vegetarian",
+  "Non-vegetarian",
+  "Vegan",
+  "Eggetarian",
+];
 const goals = ["High protein", "Balanced", "Low calorie", "High fiber"];
 const allergies = ["Peanuts", "Milk / Dairy", "Eggs", "Gluten"];
 const avoids = ["Mushrooms", "Coriander", "Onion", "Tomato"];
 
-function Progress({ step }: { step: number }) { return <View style={{ flexDirection: "row", justifyContent: "center", gap: 8 }}>{[0, 1, 2].map((index) => <View key={index} style={{ width: index === step ? 18 : 7, height: 7, borderRadius: 99, backgroundColor: index === step ? colors.primary : colors.border }} />)}</View>; }
-function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) { return <Pressable onPress={onPress} accessibilityRole="button" accessibilityState={{ selected }} style={({ pressed }) => ({ minHeight: 44, justifyContent: "center", paddingHorizontal: 14, borderWidth: 1, borderColor: selected ? colors.primary : colors.border, borderRadius: radius.pill, backgroundColor: selected ? colors.primarySoft : colors.surface, opacity: pressed ? 0.8 : 1 })}><Text style={{ ...typography.metadata, color: selected ? colors.primaryDark : colors.text }}>{label}</Text></Pressable>; }
-function PantryVisual() { return <View style={{ gap: spacing.md }}><View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 8 }}>{["Tomato", "Egg", "Rice"].map((item) => <View key={item} style={{ paddingHorizontal: 14, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: colors.primarySoft }}><Text style={{ ...typography.metadata, color: colors.primaryDark }}>{item}</Text></View>)}</View><Text style={{ textAlign: "center", color: colors.primary, fontSize: 22 }}>↓</Text><View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: radius.card, padding: spacing.base, backgroundColor: colors.surface, gap: 5 }}><Text style={{ ...typography.cardTitle, color: colors.text }}>Tomato egg rice bowl</Text><Text style={{ ...typography.metadata, color: colors.textSecondary }}>20 min · You have everything</Text></View></View>; }
-function MoodVisual() { return <View style={{ gap: spacing.md }}><View style={{ flexDirection: "row", justifyContent: "center", gap: 8 }}><Choice label="Cozy" selected onPress={() => undefined} /><Choice label="20 min" selected={false} onPress={() => undefined} /></View><View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: radius.card, padding: spacing.base, backgroundColor: colors.surface, gap: 5 }}><Text style={{ ...typography.cardTitle, color: colors.text }}>Creamy one-pot pasta</Text><Text style={{ ...typography.metadata, color: colors.textSecondary }}>Quick, comforting, and easy tonight</Text></View></View>; }
+function Progress({ step }: { step: number }) {
+  return (
+    <View
+      accessibilityRole="progressbar"
+      accessibilityValue={{ min: 1, max: 3, now: step + 1 }}
+      style={{ flexDirection: "row", gap: spacing.sm }}
+    >
+      {[0, 1, 2].map((index) => (
+        <View
+          key={index}
+          style={{
+            width: index === step ? 22 : 7,
+            height: 7,
+            borderRadius: radius.pill,
+            backgroundColor: index === step ? colors.primary : colors.border,
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
+function Choice({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      style={({ pressed }) => ({
+        minHeight: 44,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        justifyContent: "center",
+        paddingHorizontal: 14,
+        borderWidth: 1,
+        borderColor: selected ? colors.primary : colors.border,
+        borderRadius: radius.pill,
+        backgroundColor: selected ? colors.primarySoft : colors.surface,
+        opacity: pressed ? 0.8 : 1,
+      })}
+    >
+      {selected ? (
+        <Check size={15} strokeWidth={3} color={colors.primaryDark} />
+      ) : null}
+      <Text
+        style={{
+          ...typography.metadata,
+          color: selected ? colors.primaryDark : colors.text,
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function PreviewCard({
+  children,
+  style,
+}: {
+  children: ReactNode;
+  style?: object;
+}) {
+  return (
+    <View
+      style={[
+        {
+          borderRadius: radius.card,
+          backgroundColor: colors.surface,
+          padding: spacing.base,
+          gap: spacing.sm,
+        },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
+
+function WelcomeVisual() {
+  return (
+    <View style={{ width: "100%", alignItems: "center", gap: spacing.lg }}>
+      <View
+        style={{
+          width: 72,
+          height: 72,
+          borderRadius: radius.card,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: colors.accent,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 28,
+            lineHeight: 32,
+            fontWeight: "700",
+            color: colors.primaryDark,
+          }}
+        >
+          W
+        </Text>
+      </View>
+      <Text style={{ ...typography.screenTitle, color: colors.surface }}>
+        WhatToCook
+      </Text>
+      <PreviewCard style={{ width: "88%", gap: spacing.md }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <View style={{ gap: 2 }}>
+            <Text
+              style={{ ...typography.metadata, color: colors.textSecondary }}
+            >
+              From your kitchen
+            </Text>
+            <Text style={{ ...typography.cardTitle, color: colors.text }}>
+              Tonight’s idea
+            </Text>
+          </View>
+          <Sparkles size={21} color={colors.accent} fill={colors.accent} />
+        </View>
+        <View
+          style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}
+        >
+          {["Eggs", "Tomato", "Spinach"].map((item) => (
+            <View
+              key={item}
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: radius.pill,
+                backgroundColor: colors.primarySoft,
+              }}
+            >
+              <Text
+                style={{ ...typography.caption, color: colors.primaryDark }}
+              >
+                {item}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </PreviewCard>
+    </View>
+  );
+}
+
+function PantryVisual() {
+  return (
+    <View style={{ width: "88%", alignItems: "center", gap: spacing.md }}>
+      <View
+        style={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          gap: spacing.sm,
+        }}
+      >
+        {["Eggs", "Tomato", "Spinach"].map((item) => (
+          <View
+            key={item}
+            style={{
+              paddingHorizontal: 13,
+              paddingVertical: 8,
+              borderRadius: radius.pill,
+              backgroundColor: colors.surface,
+            }}
+          >
+            <Text style={{ ...typography.metadata, color: colors.primaryDark }}>
+              {item}
+            </Text>
+          </View>
+        ))}
+      </View>
+      <Text
+        accessibilityLabel="Ingredients become a recipe"
+        style={{
+          fontSize: 20,
+          lineHeight: 24,
+          fontWeight: "700",
+          color: colors.primaryDark,
+        }}
+      >
+        ↓
+      </Text>
+      <PreviewCard style={{ width: "100%", gap: 5 }}>
+        <Text style={{ ...typography.cardTitle, color: colors.text }}>
+          Spinach Omelette
+        </Text>
+        <Text style={{ ...typography.metadata, color: colors.textSecondary }}>
+          15 min · 3/3 ingredients
+        </Text>
+      </PreviewCard>
+    </View>
+  );
+}
+
+function MoodVisual() {
+  return (
+    <View style={{ width: "88%", gap: spacing.md }}>
+      <View
+        style={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          gap: spacing.sm,
+        }}
+      >
+        <View
+          style={{
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: radius.pill,
+            backgroundColor: colors.primarySoft,
+          }}
+        >
+          <Text style={{ ...typography.metadata, color: colors.primaryDark }}>
+            Comfort food
+          </Text>
+        </View>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 5,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: radius.pill,
+            backgroundColor: colors.surface,
+          }}
+        >
+          <Clock3 size={14} color={colors.primaryDark} />
+          <Text style={{ ...typography.metadata, color: colors.primaryDark }}>
+            20 min
+          </Text>
+        </View>
+      </View>
+      <PreviewCard style={{ gap: 5 }}>
+        <Text style={{ ...typography.metadata, color: colors.primary }}>
+          Made for your evening
+        </Text>
+        <Text style={{ ...typography.cardTitle, color: colors.text }}>
+          Creamy one-pot pasta
+        </Text>
+        <Text style={{ ...typography.metadata, color: colors.textSecondary }}>
+          Comforting, simple, and ready in 20 min
+        </Text>
+      </PreviewCard>
+    </View>
+  );
+}
+
+type IntroSlide = {
+  title: string;
+  body: string;
+  cta: string;
+  backgroundColor: string;
+  visual: ReactNode;
+};
+
+function IntroOnboardingLayout({
+  slides,
+  step,
+  onStepChange,
+  onSkip,
+}: {
+  slides: IntroSlide[];
+  step: number;
+  onStepChange: (step: number) => void;
+  onSkip: () => void;
+}) {
+  const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
+  const [pendingDirection, setPendingDirection] = useState<1 | -1 | null>(null);
+  const contentOpacity = useRef(new Animated.Value(1)).current;
+  const contentTranslate = useRef(new Animated.Value(0)).current;
+  const progressOpacity = useRef(new Animated.Value(1)).current;
+  const current = slides[step];
+  // A compact device gets the content height it needs first; larger devices
+  // settle at a spacious 64% visual region without changing per slide.
+  const panelMinimum = 318 + insets.bottom;
+  const visualHeight = Math.max(
+    330,
+    Math.min(Math.round(height * 0.64), height - panelMinimum),
+  );
+
+  useEffect(() => {
+    let mounted = true;
+    const updateReduceMotion = (enabled: boolean) => {
+      if (mounted) setReduceMotion(enabled);
+    };
+    void AccessibilityInfo.isReduceMotionEnabled().then(updateReduceMotion);
+    const subscription = AccessibilityInfo.addEventListener(
+      "reduceMotionChanged",
+      updateReduceMotion,
+    );
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (pendingDirection === null) return;
+    contentOpacity.setValue(0);
+    progressOpacity.setValue(0);
+    contentTranslate.setValue(pendingDirection * 12);
+    Animated.parallel([
+      Animated.timing(contentOpacity, {
+        toValue: 1,
+        duration: 160,
+        useNativeDriver: true,
+      }),
+      Animated.timing(contentTranslate, {
+        toValue: 0,
+        duration: 160,
+        useNativeDriver: true,
+      }),
+      Animated.timing(progressOpacity, {
+        toValue: 1,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setPendingDirection(null);
+      setTransitioning(false);
+    });
+  }, [
+    contentOpacity,
+    contentTranslate,
+    pendingDirection,
+    progressOpacity,
+    step,
+  ]);
+
+  const move = (nextStep: number) => {
+    if (transitioning || nextStep < 0 || nextStep > 3) return;
+    const direction: 1 | -1 = nextStep > step ? 1 : -1;
+    if (reduceMotion) {
+      onStepChange(nextStep);
+      return;
+    }
+    setTransitioning(true);
+    Animated.parallel([
+      Animated.timing(contentOpacity, {
+        toValue: 0,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+      Animated.timing(contentTranslate, {
+        toValue: direction * -12,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+      Animated.timing(progressOpacity, {
+        toValue: 0,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (!finished) return;
+      setPendingDirection(direction);
+      onStepChange(nextStep);
+    });
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: current.backgroundColor }}>
+      <StatusBar
+        style={
+          current.backgroundColor === colors.primarySoft ? "dark" : "light"
+        }
+      />
+      <View
+        style={{
+          height: visualHeight,
+          paddingTop: insets.top + spacing.sm,
+          paddingHorizontal: spacing.lg,
+          paddingBottom: spacing.lg,
+          backgroundColor: current.backgroundColor,
+        }}
+      >
+        <View
+          style={{
+            minHeight: 44,
+            alignItems: "flex-end",
+            justifyContent: "center",
+          }}
+        >
+          <Pressable
+            onPress={onSkip}
+            hitSlop={10}
+            accessibilityRole="button"
+            style={{
+              minWidth: 44,
+              minHeight: 44,
+              justifyContent: "center",
+              alignItems: "flex-end",
+            }}
+          >
+            <Text
+              style={{
+                ...typography.button,
+                color:
+                  current.backgroundColor === colors.primarySoft
+                    ? colors.primaryDark
+                    : colors.surface,
+              }}
+            >
+              Skip
+            </Text>
+          </Pressable>
+        </View>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "flex-end",
+            alignItems: "center",
+            paddingBottom: spacing.sm,
+          }}
+        >
+          <Animated.View
+            style={{
+              width: "100%",
+              alignItems: "center",
+              opacity: contentOpacity,
+              transform: [{ translateX: contentTranslate }],
+            }}
+          >
+            {current.visual}
+          </Animated.View>
+        </View>
+      </View>
+      <View
+        style={{
+          flex: 1,
+          minHeight: panelMinimum,
+          paddingTop: spacing.xl,
+          paddingHorizontal: spacing.lg,
+          paddingBottom: insets.bottom + spacing.sm,
+          borderTopLeftRadius: radius.panel,
+          backgroundColor: colors.surface,
+        }}
+      >
+        <View style={{ paddingTop: spacing.xl }}>
+          <Animated.View style={{ opacity: progressOpacity }}>
+            <Progress step={step} />
+          </Animated.View>
+        </View>
+        <Animated.View
+          style={{
+            minHeight: typography.screenTitle.lineHeight * 2,
+            gap: spacing.sm,
+            marginTop: spacing.xl,
+            opacity: contentOpacity,
+            transform: [{ translateX: contentTranslate }],
+          }}
+        >
+          <Text style={{ ...typography.screenTitle, color: colors.text }}>
+            {current.title}
+          </Text>
+        </Animated.View>
+        <Animated.View
+          style={{
+            minHeight: typography.body.lineHeight * 2,
+            marginTop: spacing.sm,
+            opacity: contentOpacity,
+            transform: [{ translateX: contentTranslate }],
+          }}
+        >
+          <Text style={{ ...typography.body, color: colors.textSecondary }}>
+            {current.body}
+          </Text>
+        </Animated.View>
+        <View style={{ flex: 1, minHeight: spacing.sm }} />
+        <View style={{ gap: spacing.sm }}>
+          <PrimaryButton label={current.cta} onPress={() => move(step + 1)} />
+          <Pressable
+            onPress={() => move(step - 1)}
+            disabled={step === 0 || transitioning}
+            accessibilityRole="button"
+            style={{
+              minHeight: 44,
+              justifyContent: "center",
+              alignItems: "center",
+              opacity: step === 0 ? 0 : 1,
+            }}
+          >
+            <Text style={{ ...typography.button, color: colors.primaryDark }}>
+              Back
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+}
 
 export default function Onboarding() {
-  const router = useRouter(); const insets = useSafeAreaInsets(); const { userId, isReady } = useSupabaseSession();
-  // Onboarding writes only on completion; it must not prefetch private data.
-  const profile = useProfile(userId ?? undefined, isReady, false); const preferences = useUserPreferences(userId ?? undefined, false); const device = useDeviceOnboardingCompletion(userId ?? undefined);
-  const [step, setStep] = useState(0); const [diet, setDiet] = useState("No preference"); const [selectedGoals, setGoals] = useState<string[]>([]); const [selectedAllergies, setAllergies] = useState<string[]>([]); const [selectedAvoids, setAvoids] = useState<string[]>([]);
-  const toggle = (value: string, values: string[], set: (next: string[]) => void) => set(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { userId, ensureAnonymousSession } = useSupabaseSession();
+  const queryClient = useQueryClient();
+  const [step, setStep] = useState(0);
+  const [diet, setDiet] = useState("No preference");
+  const [selectedGoals, setGoals] = useState<string[]>([]);
+  const [selectedAllergies, setAllergies] = useState<string[]>([]);
+  const [selectedAvoids, setAvoids] = useState<string[]>([]);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const toggle = (
+    value: string,
+    values: string[],
+    set: (next: string[]) => void,
+  ) =>
+    set(
+      values.includes(value)
+        ? values.filter((item) => item !== value)
+        : [...values, value],
+    );
   const complete = async (savePreferences: boolean) => {
+    if (isCompleting) return;
+    setIsCompleting(true);
     try {
-      if (savePreferences && userId) await preferences.update.mutateAsync({ ...defaultPreferences, dietPreferences: [diet], nutritionGoals: selectedGoals, allergies: selectedAllergies, avoidedIngredients: selectedAvoids.map((value) => ({ type: "custom" as const, value })) });
-      if (userId) await profile.completeOnboarding.mutateAsync();
-      await device.markCompleted();
+      // Visitor drafts remain in component state. Only the completion action
+      // crosses the persistence boundary and therefore requests an identity.
+      const resolvedUserId = userId ?? (await ensureAnonymousSession()).userId;
+      if (savePreferences) {
+        const savedPreferences = await upsertPreferences(resolvedUserId, {
+          ...defaultPreferences,
+          dietPreferences: [diet],
+          nutritionGoals: selectedGoals,
+          allergies: selectedAllergies,
+          avoidedIngredients: selectedAvoids.map((value) => ({
+            type: "custom" as const,
+            value,
+          })),
+        });
+        queryClient.setQueryData(
+          queryKeys.preferences(resolvedUserId),
+          savedPreferences,
+        );
+      }
+      const completedProfile = await completeOnboarding(resolvedUserId);
+      queryClient.setQueryData(
+        queryKeys.profile(resolvedUserId),
+        completedProfile,
+      );
+      await markDeviceOnboardingCompleted(resolvedUserId);
       router.replace("/(tabs)");
-    } catch { Alert.alert("Couldn’t finish onboarding", "Please check your connection and try again. Your progress has not been completed."); }
+    } catch {
+      Alert.alert(
+        "Couldn’t finish onboarding",
+        "Please check your connection and try again. Your progress has not been completed.",
+      );
+    } finally {
+      setIsCompleting(false);
+    }
   };
-  const intro = [
-    { title: "Food first.\nDecision second.", body: "Turn ingredients you already have into meals\nyou’ll actually want to cook.", visual: <View style={{ alignItems: "center", justifyContent: "center", minHeight: 190, borderRadius: radius.modal, backgroundColor: colors.primarySoft }}><Text style={{ fontSize: 28, fontWeight: "700", color: colors.primary }}>WhatToCook</Text></View>, cta: "Get started" },
-    { title: "Start with what you have.", body: "Add your kitchen ingredients and discover\nrecipes you can make with them.", visual: <PantryVisual />, cta: "Next" },
-    { title: "Meals that fit your mood.", body: "Find recipes based on your mood, available\ntime, and food preferences.", visual: <MoodVisual />, cta: "Continue" },
+  const intro: IntroSlide[] = [
+    {
+      title: "Food first.\nDecision second.",
+      body: "Turn ingredients you already have into meals you’ll actually want to cook.",
+      visual: <WelcomeVisual />,
+      backgroundColor: colors.primaryDark,
+      cta: "Get Started",
+    },
+    {
+      title: "Start with what you have.",
+      body: "Add your ingredients and discover recipes you can make right now.",
+      visual: <PantryVisual />,
+      backgroundColor: colors.primarySoft,
+      cta: "Next",
+    },
+    {
+      title: "Meals that fit your mood.",
+      body: "Find recipes that match your mood, available time, and food preferences.",
+      visual: <MoodVisual />,
+      backgroundColor: colors.primary,
+      cta: "Continue",
+    },
   ];
-  const busy = preferences.update.isPending || profile.completeOnboarding.isPending;
-  if (step < 3) { const current = intro[step]; return <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ flexGrow: 1, paddingHorizontal: spacing.lg, paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + spacing.lg, backgroundColor: colors.background }}><View style={{ flex: 1, justifyContent: "space-between", gap: spacing.xxl }}><View style={{ alignItems: "flex-end", minHeight: 44 }}><Pressable onPress={() => complete(false)} hitSlop={12}><Text style={{ ...typography.button, color: colors.primary }}>Skip</Text></Pressable></View><View style={{ gap: spacing.xxl }}><View style={{ alignItems: "center", gap: spacing.sm }}><Text style={{ ...typography.cardTitle, color: colors.primary }}>WhatToCook</Text></View>{current.visual}<View style={{ gap: spacing.md }}><Text style={{ ...typography.display, color: colors.text }}>{current.title}</Text><Text style={{ ...typography.body, color: colors.textSecondary }}>{current.body}</Text></View></View><View style={{ gap: spacing.lg }}><Progress step={step} /><PrimaryButton label={current.cta} onPress={() => setStep(step + 1)} />{step > 0 ? <SecondaryButton label="Back" onPress={() => setStep(step - 1)} /> : null}</View></View></ScrollView>; }
-  return <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ flexGrow: 1, paddingHorizontal: spacing.lg, paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + spacing.lg, backgroundColor: colors.background }}><View style={{ gap: spacing.lg }}><Pressable onPress={() => setStep(2)} hitSlop={12}><Text style={{ ...typography.button, color: colors.primary }}>‹ Back</Text></Pressable><View style={{ gap: spacing.sm }}><Text style={{ ...typography.display, color: colors.text }}>Make it yours.</Text><Text style={{ ...typography.body, color: colors.textSecondary }}>Tell us what works for you. You can change these preferences anytime.</Text></View><Text style={{ ...typography.cardTitle, color: colors.text }}>Diet</Text><View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>{diets.map((item) => <Choice key={item} label={item} selected={diet === item} onPress={() => setDiet(item)} />)}</View><Text style={{ ...typography.cardTitle, color: colors.text }}>Nutrition goals</Text><View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>{goals.map((item) => <Choice key={item} label={item} selected={selectedGoals.includes(item)} onPress={() => toggle(item, selectedGoals, setGoals)} />)}</View><Text style={{ ...typography.cardTitle, color: colors.text }}>Allergies</Text><View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>{allergies.map((item) => <Choice key={item} label={item} selected={selectedAllergies.includes(item)} onPress={() => toggle(item, selectedAllergies, setAllergies)} />)}</View><Text style={{ ...typography.cardTitle, color: colors.text }}>Avoid ingredients</Text><View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>{avoids.map((item) => <Choice key={item} label={item} selected={selectedAvoids.includes(item)} onPress={() => toggle(item, selectedAvoids, setAvoids)} />)}</View><View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.sm, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.primarySoft }}><Info size={18} color={colors.primaryDark} style={{ marginTop: 1 }} /><View style={{ flex: 1, gap: 2 }}><Text style={{ ...typography.metadata, color: colors.primaryDark }}>Just the essentials for now</Text><Text style={{ ...typography.caption, color: colors.textSecondary }}>Showing a few popular options to get you started. You can add more preferences anytime in Profile → Food Preferences.</Text></View></View><View style={{ gap: spacing.md, marginTop: spacing.sm }}><PrimaryButton label={busy ? "Saving…" : "Save and continue"} disabled={busy} onPress={() => complete(true)} /><SecondaryButton label="Skip for now" disabled={busy} onPress={() => complete(false)} /></View></View></ScrollView>;
+  const busy = isCompleting;
+  if (step < 3)
+    return (
+      <IntroOnboardingLayout
+        slides={intro}
+        step={step}
+        onStepChange={setStep}
+        onSkip={() => setStep(3)}
+      />
+    );
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.primaryDark }}>
+      <StatusBar style="light" />
+      <View style={{ paddingTop: insets.top + spacing.sm, paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md }}>
+        <View style={{ minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <Pressable onPress={() => setStep(2)} hitSlop={10} accessibilityRole="button" style={{ minWidth: 64, minHeight: 44, justifyContent: "center" }}><Text style={{ ...typography.button, color: colors.surface }}>‹ Back</Text></Pressable>
+          <Text style={{ ...typography.metadata, color: colors.surface }}>Final step</Text>
+        </View>
+        <View style={{ gap: spacing.sm }}><Text style={{ ...typography.screenTitle, color: colors.surface }}>Make it yours.</Text><Text style={{ ...typography.body, color: colors.surface }}>A few quick choices to personalize your recipes.</Text></View>
+      </View>
+      <View style={{ flex: 1, borderTopLeftRadius: radius.panel, overflow: "hidden", backgroundColor: colors.surface }}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingTop: spacing.xl, paddingBottom: spacing.xxxl, gap: spacing.xl }}>
+          <View style={{ gap: spacing.xl }}>
+        <PreferenceSection title="Diet">
+          <View
+            style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}
+          >
+            {diets.map((item) => (
+              <Choice
+                key={item}
+                label={item}
+                selected={diet === item}
+                onPress={() => setDiet(item)}
+              />
+            ))}
+          </View>
+        </PreferenceSection>
+        <PreferenceSection title="Nutrition goals">
+          <View
+            style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}
+          >
+            {goals.map((item) => (
+              <Choice
+                key={item}
+                label={item}
+                selected={selectedGoals.includes(item)}
+                onPress={() => toggle(item, selectedGoals, setGoals)}
+              />
+            ))}
+          </View>
+        </PreferenceSection>
+        <PreferenceSection title="Allergies">
+          <View
+            style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}
+          >
+            {allergies.map((item) => (
+              <Choice
+                key={item}
+                label={item}
+                selected={selectedAllergies.includes(item)}
+                onPress={() => toggle(item, selectedAllergies, setAllergies)}
+              />
+            ))}
+          </View>
+        </PreferenceSection>
+        <PreferenceSection title="Avoid ingredients">
+          <View
+            style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}
+          >
+            {avoids.map((item) => (
+              <Choice
+                key={item}
+                label={item}
+                selected={selectedAvoids.includes(item)}
+                onPress={() => toggle(item, selectedAvoids, setAvoids)}
+              />
+            ))}
+          </View>
+        </PreferenceSection>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "flex-start",
+            gap: spacing.sm,
+            padding: spacing.md,
+            borderRadius: radius.md,
+            backgroundColor: colors.primarySoft,
+          }}
+        >
+          <Info size={18} color={colors.primaryDark} style={{ marginTop: 1 }} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={{ ...typography.metadata, color: colors.primaryDark }}>
+              You can always change these.
+            </Text>
+            <Text style={{ ...typography.caption, color: colors.primaryDark }}>
+              Find all options in Profile → Food Preferences.
+            </Text>
+          </View>
+        </View>
+      </View>
+    </ScrollView>
+    <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: insets.bottom + spacing.sm, gap: spacing.sm, backgroundColor: colors.surface }}>
+      <PrimaryButton label={busy ? "Saving…" : "Save and Continue"} disabled={busy} onPress={() => complete(true)} />
+      <Pressable disabled={busy} onPress={() => complete(false)} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center", alignItems: "center", opacity: busy ? 0.45 : 1 }}><Text style={{ ...typography.button, color: colors.primaryDark }}>Skip for now</Text></Pressable>
+    </View>
+      </View>
+    </View>
+  );
+}
+
+function PreferenceSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <View style={{ gap: spacing.md }}>
+      <Text style={{ ...typography.cardTitle, color: colors.text }}>
+        {title}
+      </Text>
+      {children}
+    </View>
+  );
 }

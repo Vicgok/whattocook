@@ -181,14 +181,20 @@ export default function RecipeDetails() {
               label="Continue to sign in"
               onPress={() => {
                 setPrompt(false);
-                router.push({ pathname: "/auth/sign-in", params: { returnTo: `/recipes/${id}` } });
+                router.push({
+                  pathname: "/auth/sign-in",
+                  params: { returnTo: `/recipes/${id}` },
+                });
               }}
             />
             <SecondaryButton
               label="Sign in"
               onPress={() => {
                 setPrompt(false);
-                router.push({ pathname: "/auth/sign-in", params: { returnTo: `/recipes/${id}` } });
+                router.push({
+                  pathname: "/auth/sign-in",
+                  params: { returnTo: `/recipes/${id}` },
+                });
               }}
             />
             <Pressable onPress={() => setPrompt(false)}>

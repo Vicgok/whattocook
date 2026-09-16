@@ -5,7 +5,11 @@ import {
   fetchOrCreateProfile,
 } from "@/repositories/profile.repository";
 
-export function useProfile(userId?: string, authReady = false, loadProfile = true) {
+export function useProfile(
+  userId?: string,
+  authReady = false,
+  loadProfile = true,
+) {
   const queryClient = useQueryClient();
   const key = queryKeys.profile(userId ?? "guest");
   const query = useQuery({
