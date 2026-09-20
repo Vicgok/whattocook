@@ -14,6 +14,7 @@ import {
   fetchPreferences,
   upsertPreferences,
 } from "@/services/preferences.service";
+import { rollbackPreferenceMutation } from "@/domain/preferences/preference-mutation";
 
 export function useUserPreferences(userId?: string, authReady = false) {
   const queryClient = useQueryClient();
@@ -67,7 +68,7 @@ export function useUserPreferences(userId?: string, authReady = false) {
         return { previous };
       },
       onError: (_error, _next, context) =>
-        queryClient.setQueryData(key, context?.previous),
+        queryClient.setQueryData(key, rollbackPreferenceMutation(context?.previous)),
       onSuccess: (next) => queryClient.setQueryData(key, next),
     }),
   };

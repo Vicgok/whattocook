@@ -11,6 +11,8 @@ export type Recipe = {
   ingredients: RecipeIngredient[];
   steps: RecipeStep[];
   compatibilityAssessments?: CompatibilityAssessment[];
+  ingredientListComplete?: boolean;
+  dietaryVerificationStatus?: "unknown" | "proposed" | "verified";
 };
 
 /** Database steps are one-based; UI state always uses the array's zero-based index. */

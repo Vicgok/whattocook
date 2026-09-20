@@ -1,65 +1,21 @@
-import { Ingredient, CompatibilityAssessment } from "../ingredients/ingredient.types";
+import { Ingredient } from "../ingredients/ingredient.types";
 import { Recipe } from "../../types/recipe";
-
+import { AllergenCode, BaseDiet, legacyAllergen } from "../preferences/dietary";
 export type CompatibilityResult = "COMPATIBLE" | "INCOMPATIBLE" | "UNKNOWN";
-export type CompatibilityPreferences = {
-  dietPreferences: string[];
-  allergies: string[];
-  avoidedIngredientIds: string[];
-};
-
-const codeForPreference = (value: string) =>
-  value.trim().toLocaleLowerCase("en-US").replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-
-const assessmentFor = (assessments: CompatibilityAssessment[] | undefined, code: string) =>
-  assessments?.find((assessment) => assessment.requirementCode === code);
-
-/**
- * Conservative, data-only evaluation. A compatible assessment is not an
- * allergen-free or cross-contact guarantee; it only means all required
- * verified recipe data supports this compatibility requirement.
- */
-export function evaluateRecipeCompatibility(
-  recipe: Recipe,
-  ingredients: Ingredient[],
-  preferences: CompatibilityPreferences,
-): CompatibilityResult {
-  const recipeIngredientIds = new Set(recipe.ingredients.map((item) => item.ingredientId));
-  if (preferences.avoidedIngredientIds.some((id) => recipeIngredientIds.has(id))) return "INCOMPATIBLE";
-
-  const requirements = [...preferences.dietPreferences, ...preferences.allergies]
-    .map(codeForPreference)
-    .filter((code) => code && code !== "no-preference");
-  if (requirements.length === 0) return "COMPATIBLE";
-
-  const ingredientsById = new Map(ingredients.map((ingredient) => [ingredient.id, ingredient]));
-  let unknown = false;
-  for (const requirement of new Set(requirements)) {
-    const recipeAssessment = assessmentFor(recipe.compatibilityAssessments, requirement);
-    if (recipeAssessment?.status === "incompatible") return "INCOMPATIBLE";
-    if (recipeAssessment?.status === "compatible") continue;
-    if (recipe.ingredients.length === 0) {
-      unknown = true;
-      continue;
-    }
-    let allIngredientsCompatible = true;
-    for (const item of recipe.ingredients) {
-      const ingredient = ingredientsById.get(item.ingredientId);
-      const assessment = assessmentFor(ingredient?.compatibilityAssessments, requirement);
-      if (assessment?.status === "incompatible") return "INCOMPATIBLE";
-      if (assessment?.status !== "compatible") allIngredientsCompatible = false;
-    }
-    if (!allIngredientsCompatible) unknown = true;
-  }
-  return unknown ? "UNKNOWN" : "COMPATIBLE";
+export type CompatibilityReason = "AVOIDED_INGREDIENT" | "BASE_DIET_CONFLICT" | "GLUTEN_CONFLICT" | "DAIRY_CONFLICT" | "ALLERGEN_CONFLICT" | "INCOMPLETE_INGREDIENT_DATA" | "UNVERIFIED_METADATA" | "INCOMPLETE_RECIPE" | "UNKNOWN_COMPOSITE_INGREDIENT";
+export type CompatibilityEvaluation = { status: CompatibilityResult; reasons: CompatibilityReason[] };
+export type CompatibilityPreferences = { baseDiet?: BaseDiet | null; glutenFree?: boolean; dairyFree?: boolean; allergens?: (AllergenCode | string)[]; /** Legacy persisted field. */ allergies?: string[]; avoidedIngredientIds: string[]; dietPreferences?: string[] };
+const legacyDiet = (values?: string[]): BaseDiet | null => { const value = values?.[0]?.trim().toLowerCase(); return value === "vegetarian" || value === "vegan" || value === "eggetarian" || value === "pescatarian" ? value : null; };
+const isVerified = (ingredient: Ingredient) => ingredient.dietaryMetadata?.verificationStatus === "verified" && ingredient.dietaryMetadata.ingredientCompositionComplete;
+const dietConflict = (diet: BaseDiet, ingredient: Ingredient) => { const d = ingredient.dietaryMetadata!; if (diet === "vegan") return Boolean(d.containsMeat || d.containsPoultry || d.containsFish || d.containsShellfish || d.containsEgg || d.containsDairy || d.containsHoney); if (diet === "vegetarian") return Boolean(d.containsMeat || d.containsPoultry || d.containsFish || d.containsShellfish || d.containsEgg); if (diet === "eggetarian") return Boolean(d.containsMeat || d.containsPoultry || d.containsFish || d.containsShellfish); return Boolean(d.containsMeat || d.containsPoultry); };
+export function evaluateRecipeCompatibility(recipe: Recipe, ingredients: Ingredient[], preferences: CompatibilityPreferences): CompatibilityEvaluation {
+ const allergens = preferences.allergens ?? preferences.allergies ?? []; const restricted = Boolean(preferences.baseDiet ?? legacyDiet(preferences.dietPreferences)) || Boolean(preferences.glutenFree) || Boolean(preferences.dairyFree) || allergens.length > 0 || preferences.avoidedIngredientIds.length > 0;
+ const ids = new Set(recipe.ingredients.map((item) => item.ingredientId)); if (preferences.avoidedIngredientIds.some((id) => ids.has(id))) return { status: "INCOMPATIBLE", reasons: ["AVOIDED_INGREDIENT"] }; if (!restricted) return { status: "COMPATIBLE", reasons: [] }; if (!recipe.ingredients.length || recipe.ingredientListComplete === false) return { status: "UNKNOWN", reasons: ["INCOMPLETE_RECIPE"] };
+ const byId = new Map(ingredients.map((ingredient) => [ingredient.id, ingredient])); const diet = preferences.baseDiet ?? legacyDiet(preferences.dietPreferences); const unknown = new Set<CompatibilityReason>();
+ for (const row of recipe.ingredients) { const ingredient = byId.get(row.ingredientId); if (!ingredient) { unknown.add("INCOMPLETE_INGREDIENT_DATA"); continue; } const metadata = ingredient.dietaryMetadata;
+  if ((diet || preferences.glutenFree || preferences.dairyFree) && !isVerified(ingredient)) unknown.add(metadata ? "UNVERIFIED_METADATA" : "INCOMPLETE_INGREDIENT_DATA");
+  if (metadata && isVerified(ingredient)) { if (diet && dietConflict(diet, ingredient)) return { status: "INCOMPATIBLE", reasons: ["BASE_DIET_CONFLICT"] }; if (preferences.glutenFree && metadata.containsGluten) return { status: "INCOMPATIBLE", reasons: ["GLUTEN_CONFLICT"] }; if (preferences.dairyFree && metadata.containsDairy) return { status: "INCOMPATIBLE", reasons: ["DAIRY_CONFLICT"] }; }
+  for (const requestedAllergen of allergens) { const allergen = legacyAllergen(requestedAllergen); if (!allergen) { unknown.add("UNVERIFIED_METADATA"); continue; } const assessment = ingredient.allergenMetadata?.find((item) => item.allergenCode === allergen); if (assessment?.verificationStatus === "verified" && assessment.status === "present") return { status: "INCOMPATIBLE", reasons: ["ALLERGEN_CONFLICT"] }; if (assessment?.verificationStatus !== "verified" || assessment.status === "unknown") unknown.add("UNVERIFIED_METADATA"); }
+ } return unknown.size ? { status: "UNKNOWN", reasons: [...unknown] } : { status: "COMPATIBLE", reasons: [] };
 }
-
-export function filterCompatibleRecipes(
-  recipes: Recipe[],
-  ingredients: Ingredient[],
-  preferences: CompatibilityPreferences,
-) {
-  return recipes.filter((recipe) =>
-    evaluateRecipeCompatibility(recipe, ingredients, preferences) === "COMPATIBLE",
-  );
-}
+export function filterCompatibleRecipes(recipes: Recipe[], ingredients: Ingredient[], preferences: CompatibilityPreferences) { return recipes.filter((recipe) => evaluateRecipeCompatibility(recipe, ingredients, preferences).status === "COMPATIBLE"); }

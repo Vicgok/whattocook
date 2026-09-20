@@ -26,7 +26,7 @@ import { upsertPreferences } from "@/services/preferences.service";
 import type { UserPreferences } from "@/context/AppContext";
 
 const defaultPreferences: UserPreferences = {
-  dietPreferences: ["No preference"],
+  dietPreferences: [], baseDiet: null, glutenFree: false, dairyFree: false,
   nutritionGoals: [],
   allergies: [],
   avoidedIngredients: [],
@@ -34,15 +34,9 @@ const defaultPreferences: UserPreferences = {
   notificationsEnabled: true,
   appearance: "System default",
 };
-const diets = [
-  "No preference",
-  "Vegetarian",
-  "Non-vegetarian",
-  "Vegan",
-  "Eggetarian",
-];
-const goals = ["High protein", "Balanced", "Low calorie", "High fiber"];
-const allergies = ["Peanuts", "Milk / Dairy", "Eggs", "Gluten"];
+const diets = ["Vegetarian", "Vegan", "Eggetarian", "Pescatarian"];
+const goals = ["High protein", "Lower calorie", "Balanced"];
+const allergies = ["Peanuts", "Tree nuts", "Milk", "Eggs", "Wheat", "Soy", "Fish", "Crustacean shellfish", "Sesame"];
 const avoids = ["Mushrooms", "Coriander", "Onion", "Tomato"];
 
 function Progress({ step }: { step: number }) {
@@ -566,7 +560,9 @@ export default function Onboarding() {
   const { userId, ensureAnonymousSession } = useSupabaseSession();
   const queryClient = useQueryClient();
   const [step, setStep] = useState(0);
-  const [diet, setDiet] = useState("No preference");
+  const [diet, setDiet] = useState<string | null>(null);
+  const [glutenFree, setGlutenFree] = useState(false);
+  const [dairyFree, setDairyFree] = useState(false);
   const [selectedGoals, setGoals] = useState<string[]>([]);
   const [selectedAllergies, setAllergies] = useState<string[]>([]);
   const [selectedAvoids, setAvoids] = useState<string[]>([]);
@@ -591,7 +587,10 @@ export default function Onboarding() {
       if (savePreferences) {
         const savedPreferences = await upsertPreferences(resolvedUserId, {
           ...defaultPreferences,
-          dietPreferences: [diet],
+          dietPreferences: diet ? [diet] : [],
+          baseDiet: diet?.toLowerCase() as UserPreferences["baseDiet"] ?? null,
+          glutenFree,
+          dairyFree,
           nutritionGoals: selectedGoals,
           allergies: selectedAllergies,
           avoidedIngredients: selectedAvoids.map((value) => ({
@@ -678,6 +677,12 @@ export default function Onboarding() {
                 onPress={() => setDiet(item)}
               />
             ))}
+          </View>
+        </PreferenceSection>
+        <PreferenceSection title="Additional restrictions">
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+            <Choice label="Gluten-free" selected={glutenFree} onPress={() => setGlutenFree((value) => !value)} />
+            <Choice label="Dairy-free" selected={dairyFree} onPress={() => setDairyFree((value) => !value)} />
           </View>
         </PreferenceSection>
         <PreferenceSection title="Nutrition goals">

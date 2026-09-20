@@ -31,51 +31,30 @@ import { useTabContentInset } from "@/hooks/use-tab-content-inset";
 
 const dietOptions = [
   ["No preference", "Show recipes from all diet types"],
-  ["Vegetarian", "No meat or fish"],
+  ["Vegetarian", "Excludes meat, poultry, fish, seafood, and eggs; dairy allowed"],
   ["Vegan", "No meat, dairy, eggs, or animal products"],
   ["Eggetarian", "Vegetarian meals that may include eggs"],
-  ["Pescatarian", "Vegetarian foods plus fish and seafood"],
-  ["Jain", "Avoids root vegetables and other restricted ingredients"],
-  ["Halal", "Prioritize halal-compatible ingredients and recipes"],
-  ["Kosher", "Prioritize kosher-compatible recipes"],
+  ["Pescatarian", "Excludes meat and poultry; fish, seafood, eggs, and dairy allowed"],
 ] as const;
 const goals = [
   "High protein",
-  "High fiber",
-  "Low calorie",
-  "Low carb",
-  "Balanced",
-  "Low sodium",
-  "Low sugar",
-  "Heart healthy",
-  "Weight management",
-  "Muscle gain",
-  "Quick meals",
-  "Budget friendly",
+  "Lower calorie", "Balanced",
 ];
 const allergies = [
   "Peanuts",
   "Tree nuts",
-  "Milk / Dairy",
+  "Milk",
   "Eggs",
   "Wheat",
-  "Gluten",
   "Soy",
   "Fish",
-  "Shellfish",
+  "Crustacean shellfish",
   "Sesame",
-  "Mustard",
-  "Celery",
 ];
 const commonAllergies = allergies.slice(0, 6);
 const dietNames: string[] = dietOptions.map(([name]) => name);
-const dietConflicts: Record<string, string[]> = {
-  Vegan: ["Eggetarian", "Pescatarian"],
-  Eggetarian: ["Vegan"],
-  Pescatarian: ["Vegan", "Vegetarian"],
-  Vegetarian: ["Pescatarian"],
-};
-type Sheet = "diet" | "goals" | "allergies" | "avoid" | null;
+const dietConflicts: Record<string, string[]> = {};
+type Sheet = "diet" | "restrictions" | "goals" | "allergies" | "avoid" | null;
 type InfoKind = Exclude<Sheet, null> | null;
 const norm = (value: string) => value.trim().toLocaleLowerCase("en-US");
 const summary = (items: string[], empty = "None") =>
@@ -89,6 +68,11 @@ const sheetCopy = {
     title: "Diet",
     helper: "Choose all that apply to how you usually eat.",
     info: "Your diet preference helps WhatToCook prioritize suitable recipes.\n\nIt does not guarantee that every recipe meets religious, medical, or allergy requirements. Always review ingredients when needed.",
+  },
+  restrictions: {
+    title: "Additional restrictions",
+    helper: "These apply independently of your base diet.",
+    info: "Gluten-free and dairy-free are ingredient-based filters. Recipes with incomplete or unverified metadata are not presented as confirmed compatible.",
   },
   goals: {
     title: "Nutrition goals",
@@ -126,6 +110,7 @@ export default function Profile() {
     [dietPreferences, setDietPreferences] = useState(
       preferences.dietPreferences,
     ),
+    [restrictionDraft, setRestrictionDraft] = useState({ glutenFree: preferences.glutenFree ?? false, dairyFree: preferences.dairyFree ?? false }),
     [draft, setDraft] = useState<string[]>([]),
     [avoid, setAvoid] = useState<AvoidedIngredient[]>([]),
     [search, setSearch] = useState(""),
@@ -140,6 +125,7 @@ export default function Profile() {
     setCustom("");
     setCustomOpen(false);
     setDietPreferences(preferences.dietPreferences);
+    setRestrictionDraft({ glutenFree: preferences.glutenFree ?? false, dairyFree: preferences.dairyFree ?? false });
     setDietMessage(null);
     setAllergyMessage(null);
     setDraft(
@@ -210,12 +196,7 @@ export default function Profile() {
           ? `${value} can't be combined with ${removed.join(", ")}. Selecting ${value} removed ${removed.join(", ")}.`
           : null,
       );
-      return [
-        ...old.filter(
-          (item) => item !== "No preference" && !conflicts.includes(item),
-        ),
-        value,
-      ];
+      return [value];
     });
   };
   const addCustom = () => {
@@ -247,17 +228,22 @@ export default function Profile() {
     setCustom("");
     setCustomOpen(false);
   };
-  const save = () => {
+  const save = async () => {
+    try {
     if (sheet === "diet")
-      updatePreferences({
+      await updatePreferences({
         dietPreferences: dietPreferences.length
           ? dietPreferences
           : ["No preference"],
       });
-    if (sheet === "goals") updatePreferences({ nutritionGoals: draft });
-    if (sheet === "allergies") updatePreferences({ allergies: draft });
-    if (sheet === "avoid") updatePreferences({ avoidedIngredients: avoid });
+    if (sheet === "restrictions") await updatePreferences(restrictionDraft);
+    if (sheet === "goals") await updatePreferences({ nutritionGoals: draft });
+    if (sheet === "allergies") await updatePreferences({ allergies: draft });
+    if (sheet === "avoid") await updatePreferences({ avoidedIngredients: avoid });
     close();
+    } catch {
+      Alert.alert("Couldn’t save preferences", "Please check your connection and try again.");
+    }
   };
   const selected =
     sheet === "avoid"
@@ -312,6 +298,14 @@ export default function Profile() {
           onPress={() => open("diet")}
         />
         <SettingsRow
+          label="Additional restrictions"
+          value={summary([
+            ...(preferences.glutenFree ? ["Gluten-free"] : []),
+            ...(preferences.dairyFree ? ["Dairy-free"] : []),
+          ])}
+          onPress={() => open("restrictions")}
+        />
+        <SettingsRow
           label="Nutrition goals"
           value={summary(preferences.nutritionGoals)}
           onPress={() => open("goals")}
@@ -331,7 +325,7 @@ export default function Profile() {
           label="Units"
           value={preferences.units}
           onPress={() =>
-            updatePreferences({
+            void updatePreferences({
               units: preferences.units === "Metric" ? "Imperial" : "Metric",
             })
           }
@@ -346,7 +340,7 @@ export default function Profile() {
           <Switch
             value={preferences.notificationsEnabled}
             onValueChange={(value) =>
-              updatePreferences({ notificationsEnabled: value })
+              void updatePreferences({ notificationsEnabled: value })
             }
           />
         </View>
@@ -424,11 +418,11 @@ export default function Profile() {
                     message={dietMessage}
                     search={search}
                     setSearch={setSearch}
-                    customOpen={customOpen}
-                    setCustomOpen={setCustomOpen}
-                    custom={custom}
-                    setCustom={setCustom}
-                    addCustom={addCustom}
+                  />
+                ) : sheet === "restrictions" ? (
+                  <RestrictionContent
+                    value={restrictionDraft}
+                    onChange={setRestrictionDraft}
                   />
                 ) : sheet === "avoid" ? (
                   <AvoidIngredientsContent
@@ -524,6 +518,8 @@ export default function Profile() {
                   label={
                     sheet === "diet"
                       ? "Save diet"
+                      : sheet === "restrictions"
+                        ? "Save restrictions"
                       : sheet === "goals"
                         ? "Save goals"
                         : sheet === "allergies"
@@ -548,22 +544,12 @@ function DietContent({
   message,
   search,
   setSearch,
-  customOpen,
-  setCustomOpen,
-  custom,
-  setCustom,
-  addCustom,
 }: {
   dietPreferences: string[];
   onToggle: (value: string) => void;
   message: string | null;
   search: string;
   setSearch: (value: string) => void;
-  customOpen: boolean;
-  setCustomOpen: (value: boolean) => void;
-  custom: string;
-  setCustom: (value: string) => void;
-  addCustom: () => void;
 }) {
   const visibleDiets = dietNames.filter((diet) =>
     norm(diet).includes(norm(search)),
@@ -633,38 +619,25 @@ function DietContent({
           );
         })}
       </View>
-      {visibleDiets.length === 0 ? (
-        <View style={styles.dietEmpty}>
-          <Text style={styles.empty}>No matching diet</Text>
-          <Pressable
-            style={styles.customLink}
-            onPress={() => {
-              setCustom(search.trim());
-              setCustomOpen(true);
-            }}
-            accessibilityRole="button"
-          >
-            <Text style={styles.customLinkText}>+ Add "{search.trim()}"</Text>
-          </Pressable>
-        </View>
-      ) : null}
+      {visibleDiets.length === 0 ? <Text style={styles.empty}>No matching diet</Text> : null}
       {message ? (
         <View style={styles.dietMessage}>
           <Text style={styles.dietMessageIcon}>i</Text>
           <Text style={styles.dietMessageText}>{message}</Text>
         </View>
       ) : null}
-      <CustomEntry
-        open={customOpen}
-        setOpen={setCustomOpen}
-        value={custom}
-        setValue={setCustom}
-        onAdd={addCustom}
-        placeholder="e.g. Flexitarian"
-        label="Add custom diet"
-      />
     </View>
   );
+}
+function RestrictionContent({ value, onChange }: { value: { glutenFree: boolean; dairyFree: boolean }; onChange: (value: { glutenFree: boolean; dairyFree: boolean }) => void }) {
+  return <View style={styles.optionStack}>
+    <Pressable style={[styles.preferenceOption, value.glutenFree && styles.selectedCard]} onPress={() => onChange({ ...value, glutenFree: !value.glutenFree })} accessibilityRole="checkbox" accessibilityState={{ checked: value.glutenFree }}>
+      <Text style={styles.preferenceText}>Gluten-free</Text><SelectionIndicator selected={value.glutenFree} />
+    </Pressable>
+    <Pressable style={[styles.preferenceOption, value.dairyFree && styles.selectedCard]} onPress={() => onChange({ ...value, dairyFree: !value.dairyFree })} accessibilityRole="checkbox" accessibilityState={{ checked: value.dairyFree }}>
+      <Text style={styles.preferenceText}>Dairy-free</Text><SelectionIndicator selected={value.dairyFree} />
+    </Pressable>
+  </View>;
 }
 function SelectedValues({
   items,

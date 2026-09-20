@@ -33,6 +33,7 @@ type RecipeRow = {
     status: "compatible" | "incompatible";
     verified_at: string;
   }[];
+  recipe_dietary_metadata?: { ingredient_list_complete: boolean; verification_status: "unknown" | "proposed" | "verified" } | null;
 };
 const parseInstruction = (instruction: string) => {
   const [title, ...body] = instruction.split("\n");
@@ -72,6 +73,8 @@ const toRecipe = (row: RecipeRow): Recipe => ({
     status: assessment.status,
     verifiedAt: assessment.verified_at,
   })),
+  ingredientListComplete: row.recipe_dietary_metadata?.ingredient_list_complete,
+  dietaryVerificationStatus: row.recipe_dietary_metadata?.verification_status,
 });
 
 export async function fetchRecipes(): Promise<Recipe[] | null> {
@@ -80,7 +83,7 @@ export async function fetchRecipes(): Promise<Recipe[] | null> {
   traceSupabaseRequest("recipes.list", "useRecipes");
   const { data, error } = await client
     .from("recipes")
-    .select("*, recipe_ingredients(*), recipe_steps(*), recipe_compatibility_assessments(requirement_code,status,verified_at)")
+    .select("*, recipe_ingredients(*), recipe_steps(*), recipe_compatibility_assessments(requirement_code,status,verified_at), recipe_dietary_metadata(*)")
     .order("title");
   if (error) {
     traceSupabaseError("recipes.list", error);
@@ -96,7 +99,7 @@ export async function fetchRecipe(id: string): Promise<Recipe | null> {
   traceSupabaseRequest("recipes.detail", "useRecipe", `id=${id}`);
   const { data, error } = await client
     .from("recipes")
-    .select("*, recipe_ingredients(*), recipe_steps(*), recipe_compatibility_assessments(requirement_code,status,verified_at)")
+    .select("*, recipe_ingredients(*), recipe_steps(*), recipe_compatibility_assessments(requirement_code,status,verified_at), recipe_dietary_metadata(*)")
     .eq("id", id)
     .maybeSingle();
   if (error) {

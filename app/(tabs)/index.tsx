@@ -37,6 +37,9 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [inputFocused, setInputFocused] = useState(false);
   const eligibleRecipes = filterCompatibleRecipes(recipes, ingredients, {
+    baseDiet: preferences.baseDiet,
+    glutenFree: preferences.glutenFree,
+    dairyFree: preferences.dairyFree,
     dietPreferences: preferences.dietPreferences,
     allergies: preferences.allergies,
     avoidedIngredientIds: preferences.avoidedIngredients
