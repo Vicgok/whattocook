@@ -14,7 +14,16 @@ import {
   fetchPreferences,
   upsertPreferences,
 } from "@/services/preferences.service";
-import { rollbackPreferenceMutation } from "@/domain/preferences/preference-mutation";
+import {
+  mergePreferenceMutation,
+  rollbackPreferenceMutation,
+} from "@/domain/preferences/preference-mutation";
+
+const emptyPreferences: UserPreferences = {
+  dietPreferences: [], baseDiet: null, glutenFree: false, dairyFree: false,
+  nutritionGoals: [], allergies: [], avoidedIngredients: [], units: "Metric",
+  notificationsEnabled: true, appearance: "System default",
+};
 
 export function useUserPreferences(userId?: string, authReady = false) {
   const queryClient = useQueryClient();
@@ -59,17 +68,30 @@ export function useUserPreferences(userId?: string, authReady = false) {
   return {
     ...preferences,
     update: useMutation({
-      mutationFn: (next: UserPreferences) => upsertPreferences(userId!, next),
+      mutationFn: (changes: Partial<UserPreferences>) => {
+        const current = queryClient.getQueryData<UserPreferences | null>(key);
+        return upsertPreferences(
+          userId!,
+          mergePreferenceMutation(current ?? emptyPreferences, changes),
+        );
+      },
+      scope: { id: `preferences:${userId ?? "guest"}` },
       retry: 0,
-      onMutate: async (next) => {
+      onMutate: async (changes: Partial<UserPreferences>) => {
         await queryClient.cancelQueries({ queryKey: key });
         const previous = queryClient.getQueryData<UserPreferences | null>(key);
+        const next = mergePreferenceMutation(previous ?? emptyPreferences, changes);
         queryClient.setQueryData(key, next);
         return { previous };
       },
       onError: (_error, _next, context) =>
         queryClient.setQueryData(key, rollbackPreferenceMutation(context?.previous)),
-      onSuccess: (next) => queryClient.setQueryData(key, next),
+      onSuccess: (next) =>
+        queryClient.setQueryData<UserPreferences | null>(key, (current) =>
+          // Keep any later optimistic screen edit while a scoped mutation is
+          // queued, then let that queued save persist the merged object.
+          mergePreferenceMutation(next, current ?? {}),
+        ),
     }),
   };
 }

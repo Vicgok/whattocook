@@ -11,6 +11,7 @@ const dietary = (data: Partial<NonNullable<Ingredient["dietaryMetadata"]>>) => (
 const ingredients: Ingredient[] = [
   { id: "milk", slug: "milk", name: "Milk", categoryId: "dairy", aliases: ["whole milk"], searchKeywords: [], isCountable: false, pantryCommon: true, dietaryMetadata: dietary({ containsDairy: true }), allergenMetadata: [{ allergenCode: "milk", status: "present", verificationStatus: "verified" }] },
   { id: "rice", slug: "rice", name: "Rice", categoryId: "grains", aliases: [], searchKeywords: [], isCountable: false, pantryCommon: true, dietaryMetadata: dietary({ containsDairy: false, containsGluten: false }) },
+  { id: "wheat", slug: "wheat", name: "Wheat", categoryId: "grains", aliases: [], searchKeywords: [], isCountable: false, pantryCommon: true, dietaryMetadata: dietary({ containsDairy: false, containsGluten: true }) },
   { id: "unknown", slug: "unknown", name: "Unknown", categoryId: "other", aliases: [], searchKeywords: [], isCountable: false, pantryCommon: false },
 ];
 const item = (ingredientId: string, isOptional = false): RecipeIngredient => ({ id: ingredientId, recipeId: "r", ingredientId, isOptional });
@@ -21,6 +22,9 @@ expect(resolveIngredient("whole milk", ingredients)?.id === "milk", "aliases res
 expect(evaluateRecipeCompatibility(recipe("avoid", [item("rice")]), ingredients, preference({ avoidedIngredientIds: ["rice"] })).status === "INCOMPATIBLE", "explicit avoided canonical ingredients are incompatible");
 expect(evaluateRecipeCompatibility(recipe("allergen", [item("milk")]), ingredients, preference({ allergies: ["Milk / Dairy"] })).status === "INCOMPATIBLE", "verified allergen conflicts are incompatible");
 expect(evaluateRecipeCompatibility(recipe("diet", [item("milk")]), ingredients, preference({ dietPreferences: ["Vegan"] })).status === "INCOMPATIBLE", "verified dietary conflicts are incompatible");
+expect(evaluateRecipeCompatibility(recipe("gluten", [item("wheat")]), ingredients, { ...preference(), glutenFree: true }).status === "INCOMPATIBLE", "gluten-free is independently enforced");
+expect(evaluateRecipeCompatibility(recipe("dairy", [item("milk")]), ingredients, { ...preference(), dairyFree: true }).status === "INCOMPATIBLE", "dairy-free is independently enforced");
+expect(evaluateRecipeCompatibility(recipe("combined-compatible", [item("rice")]), ingredients, { ...preference(), baseDiet: "vegetarian", glutenFree: true, dairyFree: true }).status === "COMPATIBLE", "combined normalized restrictions reach discovery together");
 expect(evaluateRecipeCompatibility(recipe("multiple", [item("milk"), item("unknown")]), ingredients, preference({ dietPreferences: ["Vegan"], allergies: ["Milk / Dairy"] })).status === "INCOMPATIBLE", "known conflicts take precedence over incomplete metadata");
 expect(evaluateRecipeCompatibility(recipe("unknown", [item("unknown")]), ingredients, preference({ dietPreferences: ["Vegan"] })).status === "UNKNOWN", "missing ingredient metadata remains unknown");
 expect(evaluateRecipeCompatibility(recipe("empty", []), ingredients, preference({ allergies: ["Milk / Dairy"] })).status === "UNKNOWN", "an empty ingredient set without recipe verification is unknown");

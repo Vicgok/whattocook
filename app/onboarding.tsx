@@ -24,6 +24,7 @@ import { queryKeys } from "@/lib/query-keys";
 import { completeOnboarding } from "@/repositories/profile.repository";
 import { upsertPreferences } from "@/services/preferences.service";
 import type { UserPreferences } from "@/context/AppContext";
+import { legacyBaseDiet } from "@/domain/preferences/dietary";
 
 const defaultPreferences: UserPreferences = {
   dietPreferences: [], baseDiet: null, glutenFree: false, dairyFree: false,
@@ -588,7 +589,7 @@ export default function Onboarding() {
         const savedPreferences = await upsertPreferences(resolvedUserId, {
           ...defaultPreferences,
           dietPreferences: diet ? [diet] : [],
-          baseDiet: diet?.toLowerCase() as UserPreferences["baseDiet"] ?? null,
+          baseDiet: diet ? legacyBaseDiet(diet) : null,
           glutenFree,
           dairyFree,
           nutritionGoals: selectedGoals,

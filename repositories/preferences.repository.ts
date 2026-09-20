@@ -5,7 +5,11 @@ import {
   traceSupabaseError,
   traceSupabaseRequest,
 } from "@/lib/supabase-request-tracer";
-import { legacyBaseDiet } from "@/domain/preferences/dietary";
+import {
+  ALLERGEN_LABELS,
+  legacyAllergen,
+  resolveBaseDiet,
+} from "@/domain/preferences/dietary";
 import { normalizePreferenceStorage } from "@/domain/preferences/preference-serialization";
 
 type PreferencesRow = {
@@ -21,16 +25,24 @@ type PreferencesRow = {
   base_diet?: UserPreferences["baseDiet"];
   gluten_free?: boolean;
   dairy_free?: boolean;
+  user_preference_allergens?: { allergen_code: string }[] | null;
+  user_avoided_ingredients?: { ingredient_id: string }[] | null;
 };
 
 const toPreferences = (row: PreferencesRow): UserPreferences => ({
   dietPreferences: row.diet,
-  baseDiet: row.base_diet ?? row.diet.map(legacyBaseDiet).find(Boolean) ?? null,
+  baseDiet: resolveBaseDiet(row.base_diet, row.diet),
   glutenFree: row.gluten_free ?? false,
   dairyFree: row.dairy_free ?? false,
-  allergies: row.allergies,
+  allergies:
+    row.user_preference_allergens?.map(
+      ({ allergen_code }) => ALLERGEN_LABELS[allergen_code as keyof typeof ALLERGEN_LABELS] ?? allergen_code,
+    ) ?? row.allergies,
   nutritionGoals: row.nutrition_goals,
-  avoidedIngredients: row.cooking_preferences?.avoidedIngredients ?? [],
+  avoidedIngredients: row.user_avoided_ingredients?.map(({ ingredient_id }) => ({
+    type: "canonical" as const,
+    ingredientId: ingredient_id,
+  })) ?? row.cooking_preferences?.avoidedIngredients ?? [],
   units: row.cooking_preferences?.units ?? "Metric",
   notificationsEnabled: row.cooking_preferences?.notificationsEnabled ?? true,
   appearance: row.cooking_preferences?.appearance ?? "System default",
@@ -53,7 +65,7 @@ export async function fetchPreferences(
   traceSupabaseHttp("preferences.get", "started", userId);
   const { data, error, status } = await client
     .from("user_preferences")
-    .select("diet, allergies, nutrition_goals, cooking_preferences, base_diet, gluten_free, dairy_free")
+    .select("diet, allergies, nutrition_goals, cooking_preferences, base_diet, gluten_free, dairy_free, user_preference_allergens(allergen_code), user_avoided_ingredients(ingredient_id)")
     .eq("user_id", userId)
     .maybeSingle();
   if (signal?.aborted) {
@@ -81,11 +93,55 @@ export async function upsertPreferences(
       { user_id: userId, ...normalizePreferenceStorage(preferences) },
       { onConflict: "user_id" },
     )
-    .select("diet, allergies, nutrition_goals, cooking_preferences, base_diet, gluten_free, dairy_free")
+    .select("diet, allergies, nutrition_goals, cooking_preferences, base_diet, gluten_free, dairy_free, user_preference_allergens(allergen_code), user_avoided_ingredients(ingredient_id)")
     .single();
   if (error) {
     traceSupabaseError("preferences.upsert", error);
     throw error;
   }
-  return toPreferences(data as PreferencesRow);
+  const canonicalAvoidedIngredientIds = preferences.avoidedIngredients
+    .filter((ingredient): ingredient is { type: "canonical"; ingredientId: string } => ingredient.type === "canonical")
+    .map((ingredient) => ingredient.ingredientId);
+  const normalizedAllergens = preferences.allergies
+    .map(legacyAllergen)
+    .filter((allergen): allergen is NonNullable<typeof allergen> => Boolean(allergen));
+  const { error: allergensError } = await client
+    .from("user_preference_allergens")
+    .delete()
+    .eq("user_id", userId);
+  if (allergensError) {
+    traceSupabaseError("preferences.allergens.replace", allergensError);
+    throw allergensError;
+  }
+  if (normalizedAllergens.length) {
+    const { error: insertAllergensError } = await client
+      .from("user_preference_allergens")
+      .insert(normalizedAllergens.map((allergen_code) => ({ user_id: userId, allergen_code })));
+    if (insertAllergensError) {
+      traceSupabaseError("preferences.allergens.replace", insertAllergensError);
+      throw insertAllergensError;
+    }
+  }
+  const { error: avoidedError } = await client
+    .from("user_avoided_ingredients")
+    .delete()
+    .eq("user_id", userId);
+  if (avoidedError) {
+    traceSupabaseError("preferences.avoidedIngredients.replace", avoidedError);
+    throw avoidedError;
+  }
+  if (canonicalAvoidedIngredientIds.length) {
+    const { error: insertAvoidedError } = await client
+      .from("user_avoided_ingredients")
+      .insert(canonicalAvoidedIngredientIds.map((ingredient_id) => ({ user_id: userId, ingredient_id })));
+    if (insertAvoidedError) {
+      traceSupabaseError("preferences.avoidedIngredients.replace", insertAvoidedError);
+      throw insertAvoidedError;
+    }
+  }
+  return toPreferences({
+    ...(data as PreferencesRow),
+    user_preference_allergens: normalizedAllergens.map((allergen_code) => ({ allergen_code })),
+    user_avoided_ingredients: canonicalAvoidedIngredientIds.map((ingredient_id) => ({ ingredient_id })),
+  });
 }

@@ -50,7 +50,7 @@ export default function Home() {
   const hiddenPantryCount = Math.max(0, pantry.length - visiblePantry.length);
   const recommendations = useMemo(
     () => rankRecipesForPantry(eligibleRecipes, pantry, ingredients),
-    [ingredients, pantry, preferences.avoidedIngredients, recipes],
+    [eligibleRecipes, ingredients, pantry],
   );
   const bestMatch = recommendations[0];
   const moreRecipes = recommendations.slice(1, 4);
