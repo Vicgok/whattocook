@@ -11,6 +11,9 @@ export type AvoidedIngredient =
   | { type: "custom"; value: string };
 export type UserPreferences = {
   dietPreferences: string[];
+  baseDiet?: "vegetarian" | "vegan" | "eggetarian" | "pescatarian" | null;
+  glutenFree?: boolean;
+  dairyFree?: boolean;
   nutritionGoals: string[];
   allergies: string[];
   avoidedIngredients: AvoidedIngredient[];
@@ -22,6 +25,9 @@ const initialPreferences: UserPreferences = {
   // An absent database row is not a saved dietary choice. UI controls may
   // present “No preference”, but queries must not manufacture it as data.
   dietPreferences: [],
+  baseDiet: null,
+  glutenFree: false,
+  dairyFree: false,
   nutritionGoals: [],
   allergies: [],
   avoidedIngredients: [],
@@ -40,7 +46,7 @@ type AppContextValue = {
   signOut: () => Promise<void>;
   toggleSaved: (id: string) => void;
   setPendingSaveId: (id: string | null) => void;
-  updatePreferences: (changes: Partial<UserPreferences>) => void;
+  updatePreferences: (changes: Partial<UserPreferences>) => Promise<void>;
 };
 const AppContext = createContext<AppContextValue | undefined>(undefined);
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -111,9 +117,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
               : saved.save.mutate(id);
         },
         setPendingSaveId,
-        updatePreferences: (changes) => {
-          if (remote)
-            remotePreferences.update.mutate({ ...preferences, ...changes });
+        updatePreferences: async (changes) => {
+          if (!remote) throw new Error("Preferences are unavailable until authentication is ready.");
+          await remotePreferences.update.mutateAsync({ ...preferences, ...changes });
         },
       }}
     >

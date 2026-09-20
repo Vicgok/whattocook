@@ -1,0 +1,11 @@
+import { baseDietSelection, normalizePreferenceStorage } from "../domain/preferences/preference-serialization";
+import { rollbackPreferenceMutation } from "../domain/preferences/preference-mutation";
+const expect = (condition: unknown, message: string) => { if (!condition) throw new Error(message); };
+const base = { dietPreferences: ["Vegan"], baseDiet: "vegan" as const, glutenFree: true, dairyFree: true, allergies: ["Milk"], nutritionGoals: ["High protein"], avoidedIngredients: [{ type: "canonical" as const, ingredientId: "milk" }], units: "Metric" as const, notificationsEnabled: true, appearance: "System default" };
+const serialized = normalizePreferenceStorage(base);
+expect(serialized.base_diet === "vegan" && serialized.gluten_free && serialized.dairy_free, "independent restrictions serialize together");
+expect(serialized.cooking_preferences.avoidedIngredients[0]?.type === "canonical", "canonical exclusions are preserved");
+expect(normalizePreferenceStorage({ ...base, baseDiet: null, dietPreferences: ["Eggetarian"] }).base_diet === "eggetarian", "legacy base diet maps safely");
+expect(baseDietSelection(["Vegan"], "Pescatarian").join() === "Pescatarian", "base diets are mutually exclusive");
+expect(baseDietSelection(["Vegan"], "No preference").join() === "No preference", "base diet can be cleared");
+expect(rollbackPreferenceMutation(base) === base, "failed preference mutations restore the prior cached preference object");

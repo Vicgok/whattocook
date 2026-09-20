@@ -40,6 +40,9 @@ export default function RecipeResults() {
   const [query, setQuery] = useState("High-protein dinner under 30 minutes");
   const [filter, setFilter] = useState("Best match");
   const eligibleRecipes = filterCompatibleRecipes(recipes, ingredients, {
+    baseDiet: preferences.baseDiet,
+    glutenFree: preferences.glutenFree,
+    dairyFree: preferences.dairyFree,
     dietPreferences: preferences.dietPreferences,
     allergies: preferences.allergies,
     avoidedIngredientIds: preferences.avoidedIngredients

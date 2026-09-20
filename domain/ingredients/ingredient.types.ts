@@ -24,6 +24,8 @@ export type CompatibilityAssessment = {
   status: CompatibilityStatus;
   verifiedAt: string;
 };
+export type DietaryMetadata = { containsMeat?: boolean | null; containsPoultry?: boolean | null; containsFish?: boolean | null; containsShellfish?: boolean | null; containsEgg?: boolean | null; containsDairy?: boolean | null; containsHoney?: boolean | null; containsGluten?: boolean | null; ingredientCompositionComplete: boolean; verificationStatus: "unknown" | "proposed" | "verified"; };
+export type AllergenMetadata = { allergenCode: string; status: "present" | "not_present" | "unknown"; verificationStatus: "unknown" | "proposed" | "verified" };
 export type Ingredient = {
   id: string;
   slug: string;
@@ -41,6 +43,8 @@ export type Ingredient = {
   createdAt?: string;
   updatedAt?: string;
   compatibilityAssessments?: CompatibilityAssessment[];
+  dietaryMetadata?: DietaryMetadata;
+  allergenMetadata?: AllergenMetadata[];
 };
 export type PantryStorageLocation = "pantry" | "fridge" | "freezer";
 export type PantryItem = {

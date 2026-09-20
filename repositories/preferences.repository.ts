@@ -5,6 +5,8 @@ import {
   traceSupabaseError,
   traceSupabaseRequest,
 } from "@/lib/supabase-request-tracer";
+import { legacyBaseDiet } from "@/domain/preferences/dietary";
+import { normalizePreferenceStorage } from "@/domain/preferences/preference-serialization";
 
 type PreferencesRow = {
   diet: string[];
@@ -16,10 +18,16 @@ type PreferencesRow = {
       "avoidedIngredients" | "units" | "notificationsEnabled" | "appearance"
     >
   > | null;
+  base_diet?: UserPreferences["baseDiet"];
+  gluten_free?: boolean;
+  dairy_free?: boolean;
 };
 
 const toPreferences = (row: PreferencesRow): UserPreferences => ({
   dietPreferences: row.diet,
+  baseDiet: row.base_diet ?? row.diet.map(legacyBaseDiet).find(Boolean) ?? null,
+  glutenFree: row.gluten_free ?? false,
+  dairyFree: row.dairy_free ?? false,
   allergies: row.allergies,
   nutritionGoals: row.nutrition_goals,
   avoidedIngredients: row.cooking_preferences?.avoidedIngredients ?? [],
@@ -45,7 +53,7 @@ export async function fetchPreferences(
   traceSupabaseHttp("preferences.get", "started", userId);
   const { data, error, status } = await client
     .from("user_preferences")
-    .select("diet, allergies, nutrition_goals, cooking_preferences")
+    .select("diet, allergies, nutrition_goals, cooking_preferences, base_diet, gluten_free, dairy_free")
     .eq("user_id", userId)
     .maybeSingle();
   if (signal?.aborted) {
@@ -70,21 +78,10 @@ export async function upsertPreferences(
   const { data, error } = await client
     .from("user_preferences")
     .upsert(
-      {
-        user_id: userId,
-        diet: preferences.dietPreferences,
-        allergies: preferences.allergies,
-        nutrition_goals: preferences.nutritionGoals,
-        cooking_preferences: {
-          avoidedIngredients: preferences.avoidedIngredients,
-          units: preferences.units,
-          notificationsEnabled: preferences.notificationsEnabled,
-          appearance: preferences.appearance,
-        },
-      },
+      { user_id: userId, ...normalizePreferenceStorage(preferences) },
       { onConflict: "user_id" },
     )
-    .select("diet, allergies, nutrition_goals, cooking_preferences")
+    .select("diet, allergies, nutrition_goals, cooking_preferences, base_diet, gluten_free, dairy_free")
     .single();
   if (error) {
     traceSupabaseError("preferences.upsert", error);
