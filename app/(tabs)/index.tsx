@@ -16,8 +16,10 @@ import { useTabContentInset } from "@/hooks/use-tab-content-inset";
 import { HomeRecipeCard } from "@/components/home-recipe-card";
 import { TopScrollProtection } from "@/components/top-scroll-protection";
 import { usePantry } from "@/context/PantryContext";
-import { getIngredientById, ingredients } from "@/data/ingredients";
+import { useApp } from "@/context/AppContext";
 import { rankRecipesForPantry } from "@/domain/recipes/recipe-matching";
+import { filterCompatibleRecipes } from "@/domain/recipes/recipe-compatibility";
+import { useIngredients } from "@/hooks/useIngredients";
 import { useRecipes } from "@/hooks/useRecipes";
 import { colors as palette } from "@/theme";
 
@@ -29,17 +31,28 @@ export default function Home() {
   const contentBottomInset = useTabContentInset(32);
   const scrollY = useRef(new Animated.Value(0)).current;
   const { pantry } = usePantry();
+  const { preferences } = useApp();
   const { data: recipes = [] } = useRecipes();
+  const { data: ingredients = [] } = useIngredients();
   const [query, setQuery] = useState("");
   const [inputFocused, setInputFocused] = useState(false);
+  const eligibleRecipes = filterCompatibleRecipes(recipes, ingredients, {
+    dietPreferences: preferences.dietPreferences,
+    allergies: preferences.allergies,
+    avoidedIngredientIds: preferences.avoidedIngredients
+      .filter((item) => item.type === "canonical")
+      .map((item) => item.ingredientId),
+  });
   const visiblePantry = pantry.slice(0, 4);
   const hiddenPantryCount = Math.max(0, pantry.length - visiblePantry.length);
   const recommendations = useMemo(
-    () => rankRecipesForPantry(recipes, pantry, ingredients),
-    [pantry],
+    () => rankRecipesForPantry(eligibleRecipes, pantry, ingredients),
+    [ingredients, pantry, preferences.avoidedIngredients, recipes],
   );
   const bestMatch = recommendations[0];
   const moreRecipes = recommendations.slice(1, 4);
+  const ingredientName = (ingredientId: string) =>
+    ingredients.find((ingredient) => ingredient.id === ingredientId)?.name;
 
   return (
     <KeyboardAvoidingView
@@ -126,7 +139,7 @@ export default function Home() {
           </View>
           <View style={styles.kitchenChips}>
             {visiblePantry.map((item) => {
-              const ingredient = getIngredientById(item.ingredientId);
+              const ingredient = ingredients.find((candidate) => candidate.id === item.ingredientId);
               return ingredient ? (
                 <Pressable
                   key={item.id}
@@ -191,7 +204,7 @@ export default function Home() {
               totalCount={bestMatch.match.totalRequiredCount}
               missingIngredientNames={bestMatch.match.missingIngredients.map(
                 (item) =>
-                  getIngredientById(item.ingredientId)?.name ??
+                  ingredientName(item.ingredientId) ??
                   item.ingredientId,
               )}
               onPress={() => router.push(`/recipes/${bestMatch.recipe.id}`)}

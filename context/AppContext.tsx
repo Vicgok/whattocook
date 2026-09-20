@@ -19,7 +19,9 @@ export type UserPreferences = {
   appearance: string;
 };
 const initialPreferences: UserPreferences = {
-  dietPreferences: ["No preference"],
+  // An absent database row is not a saved dietary choice. UI controls may
+  // present “No preference”, but queries must not manufacture it as data.
+  dietPreferences: [],
   nutritionGoals: [],
   allergies: [],
   avoidedIngredients: [],
@@ -32,6 +34,7 @@ type AppContextValue = {
   user: { name: string; email: string } | null;
   savedRecipeIds: string[];
   preferences: UserPreferences;
+  preferencesStatus: "loading" | "saved" | "empty" | "error" | "unavailable";
   pendingSaveId: string | null;
   sendMagicLink: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -56,6 +59,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const saved = useSavedRecipeIds(userId ?? undefined, dataReady);
   const remotePreferences = useUserPreferences(userId ?? undefined, dataReady);
   const remote = Boolean(isSupabaseConfigured && dataReady && userId);
+  const preferencesStatus = !remote
+    ? "unavailable"
+    : remotePreferences.isPending
+      ? "loading"
+      : remotePreferences.isError
+        ? "error"
+        : remotePreferences.data
+          ? "saved"
+          : "empty";
   const preferences = remote
     ? (remotePreferences.data ?? initialPreferences)
     : initialPreferences;
@@ -85,6 +97,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             : null,
         savedRecipeIds: remote ? (saved.data ?? []) : [],
         preferences,
+        preferencesStatus,
         pendingSaveId,
         sendMagicLink,
         signOut: async () => {

@@ -28,6 +28,11 @@ type RecipeRow = {
     instruction: string;
     duration_seconds: number | null;
   }[];
+  recipe_compatibility_assessments?: {
+    requirement_code: string;
+    status: "compatible" | "incompatible";
+    verified_at: string;
+  }[];
 };
 const parseInstruction = (instruction: string) => {
   const [title, ...body] = instruction.split("\n");
@@ -62,6 +67,11 @@ const toRecipe = (row: RecipeRow): Recipe => ({
           ? undefined
           : Math.ceil(step.duration_seconds / 60),
     })),
+  compatibilityAssessments: (row.recipe_compatibility_assessments ?? []).map((assessment) => ({
+    requirementCode: assessment.requirement_code,
+    status: assessment.status,
+    verifiedAt: assessment.verified_at,
+  })),
 });
 
 export async function fetchRecipes(): Promise<Recipe[] | null> {
@@ -70,7 +80,7 @@ export async function fetchRecipes(): Promise<Recipe[] | null> {
   traceSupabaseRequest("recipes.list", "useRecipes");
   const { data, error } = await client
     .from("recipes")
-    .select("*, recipe_ingredients(*), recipe_steps(*)")
+    .select("*, recipe_ingredients(*), recipe_steps(*), recipe_compatibility_assessments(requirement_code,status,verified_at)")
     .order("title");
   if (error) {
     traceSupabaseError("recipes.list", error);
@@ -86,7 +96,7 @@ export async function fetchRecipe(id: string): Promise<Recipe | null> {
   traceSupabaseRequest("recipes.detail", "useRecipe", `id=${id}`);
   const { data, error } = await client
     .from("recipes")
-    .select("*, recipe_ingredients(*), recipe_steps(*)")
+    .select("*, recipe_ingredients(*), recipe_steps(*), recipe_compatibility_assessments(requirement_code,status,verified_at)")
     .eq("id", id)
     .maybeSingle();
   if (error) {

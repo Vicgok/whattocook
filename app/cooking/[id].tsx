@@ -17,7 +17,7 @@ import {
 } from "@/domain/cooking/step-navigation";
 import { useSupabaseSession } from "@/context/SupabaseSessionContext";
 import { useCookingSession } from "@/hooks/useCookingSession";
-import { getIngredientById } from "@/data/ingredients";
+import { useIngredients } from "@/hooks/useIngredients";
 import {
   colors,
   CookingProgress,
@@ -32,6 +32,7 @@ export default function Cooking() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: recipe } = useRecipe(id);
+  const { data: ingredients = [] } = useIngredients();
   const { userId, isReady } = useSupabaseSession();
   const cookingSession = useCookingSession(userId ?? undefined, id, isReady);
   const orderedSteps = recipe ? orderRecipeSteps(recipe.steps) : [];
@@ -171,7 +172,7 @@ export default function Cooking() {
                   <IngredientRow
                     key={item.id}
                     name={
-                      getIngredientById(item.ingredientId)?.name ??
+                      ingredients.find((ingredient) => ingredient.id === item.ingredientId)?.name ??
                       item.ingredientId
                     }
                     status={item.isOptional ? "Optional" : "Required"}

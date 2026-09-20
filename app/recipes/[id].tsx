@@ -10,7 +10,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRecipe } from "@/hooks/useRecipes";
-import { getIngredientById, ingredients } from "@/data/ingredients";
+import { useIngredients } from "@/hooks/useIngredients";
 import { matchRecipeToPantry } from "@/domain/ingredients/ingredient-matcher";
 import {
   colors,
@@ -32,14 +32,19 @@ export default function RecipeDetails() {
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data: recipe } = useRecipe(id);
+  const recipeQuery = useRecipe(id);
+  const { data: recipe } = recipeQuery;
+  const { data: ingredients = [] } = useIngredients();
   const { userId, isReady } = useSupabaseSession();
   const cookingSession = useCookingSession(userId ?? undefined, id, isReady);
   const { pantry } = usePantry();
   const { isAuthenticated, savedRecipeIds, toggleSaved, setPendingSaveId } =
     useApp();
   const [prompt, setPrompt] = useState(false);
-  if (!recipe) return null;
+  if (recipeQuery.isPending) return null;
+  if (!recipe) {
+    return <View style={styles.page}><Text style={styles.whyText}>{recipeQuery.isError ? "This recipe could not be loaded. Please try again." : "This recipe is no longer available."}</Text></View>;
+  }
   const saved = savedRecipeIds.includes(recipe.id);
   const match = matchRecipeToPantry(pantry, recipe.ingredients, ingredients);
   const matchedIds = new Set(match.matchedIngredients.map((item) => item.id));
@@ -47,7 +52,7 @@ export default function RecipeDetails() {
   const missing = match.missingIngredients;
   const optional = recipe.ingredients.filter((item) => item.isOptional);
   const label = (ingredientId: string) =>
-    getIngredientById(ingredientId)?.name ?? ingredientId;
+    ingredients.find((ingredient) => ingredient.id === ingredientId)?.name ?? ingredientId;
   const save = () => {
     if (userId) toggleSaved(recipe.id);
     else {
