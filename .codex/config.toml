@@ -1,0 +1,48 @@
+#:schema https://developers.openai.com/codex/config-schema.json
+
+# ============================================================
+# WhatToCook Codex project configuration
+# ============================================================
+
+# Let Codex work freely inside the repository while requiring
+# approval before operations outside the expected sandbox.
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+# Use deeper reasoning by default for implementation/debugging tasks.
+model_reasoning_effort = "medium"
+
+# Keep useful summaries while reasoning.
+model_reasoning_summary = "auto"
+
+# ============================================================
+# Workspace sandbox
+# ============================================================
+
+[sandbox_workspace_write]
+
+# Needed for package installation, documentation lookups,
+# Expo/npm tooling and similar developer workflows.
+network_access = true
+
+# ============================================================
+# Multi-agent behavior
+# ============================================================
+
+[agents]
+
+# Keep subagents available for large audits/features.
+enabled = true
+
+# Enough concurrency for architecture investigation + tests +
+# implementation without creating excessive parallel work.
+max_concurrent_threads_per_session = 4
+
+# ============================================================
+# History
+# ============================================================
+
+[history]
+
+# Preserve Codex session history.
+persistence = "save-all"

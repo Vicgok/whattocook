@@ -5,7 +5,8 @@
   "scripts": {
     "start": "expo start",
     "typecheck": "tsc --noEmit",
-    "test:ingredients": "tsc --ignoreConfig --strict --ignoreDeprecations 6.0 --outDir .ingredient-test-build --module commonjs --target es2022 --moduleResolution node tests/ingredient-domain.test.ts tests/recipe-flow.test.ts tests/recipe-compatibility.test.ts tests/request-audit.test.ts tests/preference-serialization.test.ts && node .ingredient-test-build/tests/ingredient-domain.test.js && node .ingredient-test-build/tests/recipe-flow.test.js && node .ingredient-test-build/tests/recipe-compatibility.test.js && node .ingredient-test-build/tests/request-audit.test.js && node .ingredient-test-build/tests/preference-serialization.test.js"
+    "test:ingredients": "tsc --ignoreConfig --strict --ignoreDeprecations 6.0 --outDir .ingredient-test-build --module commonjs --target es2022 --moduleResolution node tests/ingredient-domain.test.ts tests/recipe-flow.test.ts tests/recipe-compatibility.test.ts tests/request-audit.test.ts tests/preference-serialization.test.ts && node .ingredient-test-build/tests/ingredient-domain.test.js && node .ingredient-test-build/tests/recipe-flow.test.js && node .ingredient-test-build/tests/recipe-compatibility.test.js && node .ingredient-test-build/tests/request-audit.test.js && node .ingredient-test-build/tests/preference-serialization.test.js",
+    "verify": "npm run typecheck && npm run lint && npm test"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
