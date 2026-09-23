@@ -28,32 +28,21 @@ import { useIngredients } from "@/hooks/useIngredients";
 import { searchIngredients } from "@/domain/ingredients/ingredient-search";
 import { TopScrollProtection } from "@/components/top-scroll-protection";
 import { useTabContentInset } from "@/hooks/use-tab-content-inset";
+import {
+  ALLERGEN_LABELS,
+  ALLERGENS,
+  BASE_DIETS,
+  BASE_DIET_LABELS,
+  legacyBaseDiet,
+  NUTRITION_GOAL_LABELS,
+  NUTRITION_GOALS,
+  resolveBaseDiet,
+} from "@/domain/preferences/dietary";
 
-const dietOptions = [
-  ["No preference", "Show recipes from all diet types"],
-  ["Vegetarian", "Excludes meat, poultry, fish, seafood, and eggs; dairy allowed"],
-  ["Vegan", "No meat, dairy, eggs, or animal products"],
-  ["Eggetarian", "Vegetarian meals that may include eggs"],
-  ["Pescatarian", "Excludes meat and poultry; fish, seafood, eggs, and dairy allowed"],
-] as const;
-const goals = [
-  "High protein",
-  "Lower calorie", "Balanced",
-];
-const allergies = [
-  "Peanuts",
-  "Tree nuts",
-  "Milk",
-  "Eggs",
-  "Wheat",
-  "Soy",
-  "Fish",
-  "Crustacean shellfish",
-  "Sesame",
-];
+const goals = NUTRITION_GOALS.map((goal) => NUTRITION_GOAL_LABELS[goal]);
+const allergies = ALLERGENS.map((allergen) => ALLERGEN_LABELS[allergen]);
 const commonAllergies = allergies.slice(0, 6);
-const dietNames: string[] = dietOptions.map(([name]) => name);
-const dietConflicts: Record<string, string[]> = {};
+const dietNames = BASE_DIETS.map((diet) => BASE_DIET_LABELS[diet]);
 type Sheet = "diet" | "restrictions" | "goals" | "allergies" | "avoid" | null;
 type InfoKind = Exclude<Sheet, null> | null;
 const norm = (value: string) => value.trim().toLocaleLowerCase("en-US");
@@ -107,9 +96,10 @@ export default function Profile() {
   const { data: ingredients = [] } = useIngredients();
   const [sheet, setSheet] = useState<Sheet>(null),
     [info, setInfo] = useState<InfoKind>(null),
-    [dietPreferences, setDietPreferences] = useState(
-      preferences.dietPreferences,
-    ),
+    [dietPreferences, setDietPreferences] = useState(() => {
+      const baseDiet = resolveBaseDiet(preferences.baseDiet, preferences.dietPreferences);
+      return baseDiet ? [BASE_DIET_LABELS[baseDiet]] : [];
+    }),
     [restrictionDraft, setRestrictionDraft] = useState({ glutenFree: preferences.glutenFree ?? false, dairyFree: preferences.dairyFree ?? false }),
     [draft, setDraft] = useState<string[]>([]),
     [avoid, setAvoid] = useState<AvoidedIngredient[]>([]),
@@ -124,7 +114,8 @@ export default function Profile() {
     setSearch("");
     setCustom("");
     setCustomOpen(false);
-    setDietPreferences(preferences.dietPreferences);
+    const baseDiet = resolveBaseDiet(preferences.baseDiet, preferences.dietPreferences);
+    setDietPreferences(baseDiet ? [BASE_DIET_LABELS[baseDiet]] : []);
     setRestrictionDraft({ glutenFree: preferences.glutenFree ?? false, dairyFree: preferences.dairyFree ?? false });
     setDietMessage(null);
     setAllergyMessage(null);
@@ -179,23 +170,9 @@ export default function Profile() {
       if (hasValue) {
         const next = old.filter((item) => norm(item) !== norm(value));
         setDietMessage(null);
-        return next.length ? next : ["No preference"];
+        return next;
       }
-      if (value === "No preference") {
-        setDietMessage(
-          old.some((item) => item !== "No preference")
-            ? "No preference clears your other diet selections."
-            : null,
-        );
-        return ["No preference"];
-      }
-      const conflicts = dietConflicts[value] ?? [];
-      const removed = old.filter((item) => conflicts.includes(item));
-      setDietMessage(
-        removed.length
-          ? `${value} can't be combined with ${removed.join(", ")}. Selecting ${value} removed ${removed.join(", ")}.`
-          : null,
-      );
+      setDietMessage("Only one base diet can be selected. Gluten-free and dairy-free can be combined with it separately.");
       return [value];
     });
   };
@@ -232,9 +209,8 @@ export default function Profile() {
     try {
     if (sheet === "diet")
       await updatePreferences({
-        dietPreferences: dietPreferences.length
-          ? dietPreferences
-          : ["No preference"],
+        baseDiet: dietPreferences[0] ? legacyBaseDiet(dietPreferences[0]) : null,
+        dietPreferences,
       });
     if (sheet === "restrictions") await updatePreferences(restrictionDraft);
     if (sheet === "goals") await updatePreferences({ nutritionGoals: draft });
@@ -294,7 +270,9 @@ export default function Profile() {
         <SectionHeader>Food Preferences</SectionHeader>
         <SettingsRow
           label="Diet"
-          value={summary(preferences.dietPreferences, "No preference")}
+          value={resolveBaseDiet(preferences.baseDiet, preferences.dietPreferences)
+            ? BASE_DIET_LABELS[resolveBaseDiet(preferences.baseDiet, preferences.dietPreferences)!]
+            : "No preference"}
           onPress={() => open("diet")}
         />
         <SettingsRow
@@ -554,9 +532,7 @@ function DietContent({
   const visibleDiets = dietNames.filter((diet) =>
     norm(diet).includes(norm(search)),
   );
-  const selectedDiets = dietPreferences.filter(
-    (diet) => diet !== "No preference",
-  );
+  const selectedDiets = dietPreferences;
   return (
     <View style={styles.optionStack}>
       <View style={styles.searchField}>
@@ -620,6 +596,16 @@ function DietContent({
         })}
       </View>
       {visibleDiets.length === 0 ? <Text style={styles.empty}>No matching diet</Text> : null}
+      {selectedDiets.length ? (
+        <Pressable
+          style={styles.noneControl}
+          onPress={() => onToggle(selectedDiets[0])}
+          accessibilityRole="button"
+          accessibilityLabel="Clear base diet"
+        >
+          <Text style={styles.noneText}>Clear base diet</Text>
+        </Pressable>
+      ) : null}
       {message ? (
         <View style={styles.dietMessage}>
           <Text style={styles.dietMessageIcon}>i</Text>

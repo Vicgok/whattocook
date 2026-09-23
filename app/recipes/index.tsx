@@ -61,7 +61,7 @@ export default function RecipeResults() {
                 b.match.missingIngredients.length ||
               a.recipe.timeMinutes - b.recipe.timeMinutes,
       ),
-    [filter, ingredients, pantry, preferences.avoidedIngredients, recipes],
+    [eligibleRecipes, filter, ingredients, pantry],
   );
   const pantryNames = pantry
     .map((item) => ingredients.find((ingredient) => ingredient.id === item.ingredientId)?.name)

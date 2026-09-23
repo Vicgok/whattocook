@@ -24,6 +24,15 @@ import { queryKeys } from "@/lib/query-keys";
 import { completeOnboarding } from "@/repositories/profile.repository";
 import { upsertPreferences } from "@/services/preferences.service";
 import type { UserPreferences } from "@/context/AppContext";
+import {
+  ALLERGEN_LABELS,
+  ALLERGENS,
+  BASE_DIET_LABELS,
+  BASE_DIETS,
+  legacyBaseDiet,
+  NUTRITION_GOAL_LABELS,
+  NUTRITION_GOALS,
+} from "@/domain/preferences/dietary";
 
 const defaultPreferences: UserPreferences = {
   dietPreferences: [], baseDiet: null, glutenFree: false, dairyFree: false,
@@ -34,9 +43,9 @@ const defaultPreferences: UserPreferences = {
   notificationsEnabled: true,
   appearance: "System default",
 };
-const diets = ["Vegetarian", "Vegan", "Eggetarian", "Pescatarian"];
-const goals = ["High protein", "Lower calorie", "Balanced"];
-const allergies = ["Peanuts", "Tree nuts", "Milk", "Eggs", "Wheat", "Soy", "Fish", "Crustacean shellfish", "Sesame"];
+const diets = BASE_DIETS.map((diet) => BASE_DIET_LABELS[diet]);
+const goals = NUTRITION_GOALS.map((goal) => NUTRITION_GOAL_LABELS[goal]);
+const allergies = ALLERGENS.map((allergen) => ALLERGEN_LABELS[allergen]);
 const avoids = ["Mushrooms", "Coriander", "Onion", "Tomato"];
 
 function Progress({ step }: { step: number }) {
@@ -588,7 +597,7 @@ export default function Onboarding() {
         const savedPreferences = await upsertPreferences(resolvedUserId, {
           ...defaultPreferences,
           dietPreferences: diet ? [diet] : [],
-          baseDiet: diet?.toLowerCase() as UserPreferences["baseDiet"] ?? null,
+          baseDiet: diet ? legacyBaseDiet(diet) : null,
           glutenFree,
           dairyFree,
           nutritionGoals: selectedGoals,

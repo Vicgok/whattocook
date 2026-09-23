@@ -119,7 +119,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setPendingSaveId,
         updatePreferences: async (changes) => {
           if (!remote) throw new Error("Preferences are unavailable until authentication is ready.");
-          await remotePreferences.update.mutateAsync({ ...preferences, ...changes });
+          await remotePreferences.update.mutateAsync(changes);
         },
       }}
     >

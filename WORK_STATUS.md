@@ -1,7 +1,6 @@
 # WhatToCook - Work Status
 
-Last updated: 2026-09-17
-Last updated: 2026-09-17
+Last updated: 2026-09-21
 
 This is the shared, version-controlled record of project progress. Update it
 whenever a phase changes state, then commit and push it to make the update
@@ -13,9 +12,6 @@ available on every device.
 | ----------------------------------------------- | ----------- | -------------------------------------------- |
 | Product foundation and core recipe experience   | Complete    | Maintain as features evolve                  |
 | Supabase data layer and local-first persistence | Complete    | Validate against the production project      |
-| Identity and onboarding                         | Complete    | Maintain authentication and onboarding flows |
-| Navigation experience                           | Complete    | Maintain and refine as the app evolves       |
-| Release readiness                               | In progress | Test, harden, and prepare a first release    |
 | Identity and onboarding                         | Complete    | Maintain authentication and onboarding flows |
 | Navigation experience                           | Complete    | Maintain and refine as the app evolves       |
 | Release readiness                               | In progress | Test, harden, and prepare a first release    |
@@ -31,12 +27,8 @@ available on every device.
 | 4.5 - Local-first data      | Complete | Query caching, persistence, cache versioning, request tracing, and repository/service integration.                                  |
 | 5 - Identity and onboarding | Complete | Authentication and session lifecycle, onboarding experience and completion guards, profile flow, and private-data hydration gating. |
 | 5.5 - Navigation refinement | Complete | Compact animated bottom navigation and safe tab-content insets across the primary app tabs.                                         |
-| 5 - Identity and onboarding | Complete | Authentication and session lifecycle, onboarding experience and completion guards, profile flow, and private-data hydration gating. |
-| 5.5 - Navigation refinement | Complete | Compact animated bottom navigation and safe tab-content insets across the primary app tabs.                                         |
 
 ## Current phase
-
-### 6 - Quality and release readiness
 
 ### 6 - Quality and release readiness
 
@@ -54,6 +46,10 @@ Completed P1 implementation awaiting environment verification:
   deterministic recipe ranking; unverified data remains `UNKNOWN`.
 - Added migration `202609170001_dietary_compatibility.sql`, compatibility tests,
   and a canonical cache-version bump.
+- Completed the V1 dietary-preference UI/persistence pass: Profile now edits a
+  single normalized base diet plus independent gluten-free and dairy-free
+  restrictions, and preference saves synchronize deployed normalized allergen
+  and canonical-avoidance relations while retaining legacy JSON mirrors.
 
 Next:
 
@@ -97,6 +93,8 @@ phase only when they are agreed.
 | 2026-09-17 | Added the five-priority MVP completion roadmap; P1 data-flow stabilization is now the active focus.                                                                     |
 | 2026-09-17 | Stabilized production data paths, identity-gated pantry reads, and query-backed recipe states; type checking and the expanded test suite pass.                          |
 | 2026-09-17 | Added conservative dietary compatibility schema/engine and discovery filtering. Coverage is 0/341 verified ingredients and 0/3 verified recipes pending sourced review. |
+| 2026-09-21 | Consolidated the status tracker, confirmed the dietary-compatibility work remains the latest merged milestone, and retained Phase 6 as the active phase.                  |
+| 2026-09-21 | Completed the V1 dietary Profile controls and normalized preference synchronization; automated preference/compatibility tests pass, while device verification remains pending. |
 
 ## How to use this file
 

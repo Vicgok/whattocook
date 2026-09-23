@@ -4,11 +4,31 @@ export const ALLERGENS = ["peanuts", "tree-nuts", "milk", "eggs", "wheat", "soy"
 export type AllergenCode = (typeof ALLERGENS)[number];
 export const NUTRITION_GOALS = ["high-protein", "lower-calorie", "balanced"] as const;
 export type NutritionGoal = (typeof NUTRITION_GOALS)[number];
+export const NUTRITION_GOAL_LABELS: Record<NutritionGoal, string> = {
+  "high-protein": "High protein",
+  "lower-calorie": "Lower calorie",
+  balanced: "Balanced",
+};
 
 /** Explicit WhatToCook V1 product definitions, not universal cultural definitions. */
 export const BASE_DIET_LABELS: Record<BaseDiet, string> = {
   vegetarian: "Vegetarian", vegan: "Vegan", eggetarian: "Eggetarian", pescatarian: "Pescatarian",
 };
+
+export function baseDietToLegacyPreference(baseDiet: BaseDiet | null): string[] {
+  return baseDiet ? [BASE_DIET_LABELS[baseDiet]] : [];
+}
+
+/**
+ * The legacy JSON list remains for backwards compatibility, but V1 accepts
+ * exactly one base diet. Prefer the normalized field whenever it exists.
+ */
+export function resolveBaseDiet(
+  baseDiet: BaseDiet | null | undefined,
+  legacyDiets: string[],
+): BaseDiet | null {
+  return baseDiet ?? legacyDiets.map(legacyBaseDiet).find(Boolean) ?? null;
+}
 export const ALLERGEN_LABELS: Record<AllergenCode, string> = {
   peanuts: "Peanuts", "tree-nuts": "Tree nuts", milk: "Milk", eggs: "Eggs", wheat: "Wheat", soy: "Soy", fish: "Fish", "crustacean-shellfish": "Crustacean shellfish", sesame: "Sesame",
 };
