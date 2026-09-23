@@ -4,6 +4,11 @@ export const ALLERGENS = ["peanuts", "tree-nuts", "milk", "eggs", "wheat", "soy"
 export type AllergenCode = (typeof ALLERGENS)[number];
 export const NUTRITION_GOALS = ["high-protein", "lower-calorie", "balanced"] as const;
 export type NutritionGoal = (typeof NUTRITION_GOALS)[number];
+export const NUTRITION_GOAL_LABELS: Record<NutritionGoal, string> = {
+  "high-protein": "High protein",
+  "lower-calorie": "Lower calorie",
+  balanced: "Balanced",
+};
 
 /** Explicit WhatToCook V1 product definitions, not universal cultural definitions. */
 export const BASE_DIET_LABELS: Record<BaseDiet, string> = {

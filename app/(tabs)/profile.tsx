@@ -29,27 +29,18 @@ import { searchIngredients } from "@/domain/ingredients/ingredient-search";
 import { TopScrollProtection } from "@/components/top-scroll-protection";
 import { useTabContentInset } from "@/hooks/use-tab-content-inset";
 import {
+  ALLERGEN_LABELS,
+  ALLERGENS,
   BASE_DIETS,
   BASE_DIET_LABELS,
   legacyBaseDiet,
+  NUTRITION_GOAL_LABELS,
+  NUTRITION_GOALS,
   resolveBaseDiet,
 } from "@/domain/preferences/dietary";
 
-const goals = [
-  "High protein",
-  "Lower calorie", "Balanced",
-];
-const allergies = [
-  "Peanuts",
-  "Tree nuts",
-  "Milk",
-  "Eggs",
-  "Wheat",
-  "Soy",
-  "Fish",
-  "Crustacean shellfish",
-  "Sesame",
-];
+const goals = NUTRITION_GOALS.map((goal) => NUTRITION_GOAL_LABELS[goal]);
+const allergies = ALLERGENS.map((allergen) => ALLERGEN_LABELS[allergen]);
 const commonAllergies = allergies.slice(0, 6);
 const dietNames = BASE_DIETS.map((diet) => BASE_DIET_LABELS[diet]);
 type Sheet = "diet" | "restrictions" | "goals" | "allergies" | "avoid" | null;
