@@ -10,6 +10,7 @@ import { queryClient } from "@/lib/query-client";
 import { SupabaseSessionProvider } from "@/context/SupabaseSessionContext";
 import { IdentityCacheGuard } from "@/components/identity-cache-guard";
 import { AppEntryGuard } from "@/components/app-entry-guard";
+import { ConnectivityProvider } from "@/context/ConnectivityContext";
 import {
   QUERY_CACHE_SCHEMA_VERSION,
   queryPersister,
@@ -27,6 +28,7 @@ export default function RootLayout() {
   useEffect(() => { if (__DEV__) console.info("[BOOT] RootLayout mounted"); }, []);
   return (
     <SafeAreaProvider>
+      <ConnectivityProvider>
       <PersistQueryClientProvider
         client={queryClient}
         persistOptions={{
@@ -69,6 +71,7 @@ export default function RootLayout() {
           </IdentityCacheGuard>
         </SupabaseSessionProvider>
       </PersistQueryClientProvider>
+      </ConnectivityProvider>
     </SafeAreaProvider>
   );
 }

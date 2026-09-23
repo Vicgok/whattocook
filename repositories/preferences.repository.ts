@@ -6,47 +6,16 @@ import {
   traceSupabaseRequest,
 } from "@/lib/supabase-request-tracer";
 import {
-  ALLERGEN_LABELS,
   legacyAllergen,
-  resolveBaseDiet,
 } from "@/domain/preferences/dietary";
 import { normalizePreferenceStorage } from "@/domain/preferences/preference-serialization";
+import {
+  hydratePreferences,
+  type PreferenceStorageRow,
+} from "@/domain/preferences/preference-hydration";
 
-type PreferencesRow = {
-  diet: string[];
-  allergies: string[];
-  nutrition_goals: string[];
-  cooking_preferences: Partial<
-    Pick<
-      UserPreferences,
-      "avoidedIngredients" | "units" | "notificationsEnabled" | "appearance"
-    >
-  > | null;
-  base_diet?: UserPreferences["baseDiet"];
-  gluten_free?: boolean;
-  dairy_free?: boolean;
-  user_preference_allergens?: { allergen_code: string }[] | null;
-  user_avoided_ingredients?: { ingredient_id: string }[] | null;
-};
-
-const toPreferences = (row: PreferencesRow): UserPreferences => ({
-  dietPreferences: row.diet,
-  baseDiet: resolveBaseDiet(row.base_diet, row.diet),
-  glutenFree: row.gluten_free ?? false,
-  dairyFree: row.dairy_free ?? false,
-  allergies:
-    row.user_preference_allergens?.map(
-      ({ allergen_code }) => ALLERGEN_LABELS[allergen_code as keyof typeof ALLERGEN_LABELS] ?? allergen_code,
-    ) ?? row.allergies,
-  nutritionGoals: row.nutrition_goals,
-  avoidedIngredients: row.user_avoided_ingredients?.map(({ ingredient_id }) => ({
-    type: "canonical" as const,
-    ingredientId: ingredient_id,
-  })) ?? row.cooking_preferences?.avoidedIngredients ?? [],
-  units: row.cooking_preferences?.units ?? "Metric",
-  notificationsEnabled: row.cooking_preferences?.notificationsEnabled ?? true,
-  appearance: row.cooking_preferences?.appearance ?? "System default",
-});
+type AllergenRow = { allergen_code: string };
+type AvoidedIngredientRow = { ingredient_id: string };
 
 export async function fetchPreferences(
   userId: string,
@@ -63,21 +32,56 @@ export async function fetchPreferences(
   // TanStack cancellation plus this post-response check prevents a late result
   // from being committed after an identity replacement.
   traceSupabaseHttp("preferences.get", "started", userId);
-  const { data, error, status } = await client
-    .from("user_preferences")
-    .select("diet, allergies, nutrition_goals, cooking_preferences, base_diet, gluten_free, dairy_free, user_preference_allergens(allergen_code), user_avoided_ingredients(ingredient_id)")
-    .eq("user_id", userId)
-    .maybeSingle();
+  const [preferencesResult, allergensResult, avoidedIngredientsResult] =
+    await Promise.all([
+      client
+        .from("user_preferences")
+        .select(
+          "diet, allergies, nutrition_goals, cooking_preferences, base_diet, gluten_free, dairy_free",
+        )
+        .eq("user_id", userId)
+        .maybeSingle(),
+      client
+        .from("user_preference_allergens")
+        .select("allergen_code")
+        .eq("user_id", userId),
+      client
+        .from("user_avoided_ingredients")
+        .select("ingredient_id")
+        .eq("user_id", userId),
+    ]);
   if (signal?.aborted) {
     traceSupabaseHttp("preferences.get", "aborted", userId);
     throw new Error("Preferences request cancelled after dispatch.");
   }
-  if (error) {
-    traceSupabaseError("preferences.get", error);
-    throw error;
+  if (preferencesResult.error) {
+    traceSupabaseError("preferences.get", preferencesResult.error);
+    throw preferencesResult.error;
   }
-  traceSupabaseHttp("preferences.get", "completed", userId, status);
-  return data ? toPreferences(data as PreferencesRow) : null;
+  if (allergensResult.error) {
+    traceSupabaseError("preferences.allergens.get", allergensResult.error);
+    throw allergensResult.error;
+  }
+  if (avoidedIngredientsResult.error) {
+    traceSupabaseError(
+      "preferences.avoidedIngredients.get",
+      avoidedIngredientsResult.error,
+    );
+    throw avoidedIngredientsResult.error;
+  }
+  traceSupabaseHttp(
+    "preferences.get",
+    "completed",
+    userId,
+    preferencesResult.status,
+  );
+  return preferencesResult.data
+    ? hydratePreferences(
+        preferencesResult.data as PreferenceStorageRow,
+        allergensResult.data as AllergenRow[] | null,
+        avoidedIngredientsResult.data as AvoidedIngredientRow[] | null,
+      )
+    : null;
 }
 
 export async function upsertPreferences(
@@ -93,7 +97,9 @@ export async function upsertPreferences(
       { user_id: userId, ...normalizePreferenceStorage(preferences) },
       { onConflict: "user_id" },
     )
-    .select("diet, allergies, nutrition_goals, cooking_preferences, base_diet, gluten_free, dairy_free, user_preference_allergens(allergen_code), user_avoided_ingredients(ingredient_id)")
+    .select(
+      "diet, allergies, nutrition_goals, cooking_preferences, base_diet, gluten_free, dairy_free",
+    )
     .single();
   if (error) {
     traceSupabaseError("preferences.upsert", error);
@@ -105,43 +111,87 @@ export async function upsertPreferences(
   const normalizedAllergens = preferences.allergies
     .map(legacyAllergen)
     .filter((allergen): allergen is NonNullable<typeof allergen> => Boolean(allergen));
-  const { error: allergensError } = await client
+  await Promise.all([
+    replaceAllergens(client, userId, normalizedAllergens),
+    replaceAvoidedIngredients(client, userId, canonicalAvoidedIngredientIds),
+  ]);
+  return hydratePreferences(
+    { ...(data as PreferenceStorageRow) },
+    normalizedAllergens.map((allergen_code) => ({ allergen_code })),
+    canonicalAvoidedIngredientIds.map((ingredient_id) => ({ ingredient_id })),
+  );
+}
+
+async function replaceAllergens(
+  client: NonNullable<ReturnType<typeof getSupabaseClient>>,
+  userId: string,
+  allergenCodes: string[],
+) {
+  if (allergenCodes.length) {
+    const { error } = await client
+      .from("user_preference_allergens")
+      .upsert(
+        allergenCodes.map((allergen_code) => ({
+          user_id: userId,
+          allergen_code,
+        })),
+        { onConflict: "user_id,allergen_code" },
+      );
+    if (error) {
+      traceSupabaseError("preferences.allergens.replace", error);
+      throw error;
+    }
+  }
+  let staleAllergens = client
     .from("user_preference_allergens")
     .delete()
     .eq("user_id", userId);
-  if (allergensError) {
-    traceSupabaseError("preferences.allergens.replace", allergensError);
-    throw allergensError;
+  if (allergenCodes.length)
+    staleAllergens = staleAllergens.not(
+      "allergen_code",
+      "in",
+      `(${allergenCodes.join(",")})`,
+    );
+  const { error } = await staleAllergens;
+  if (error) {
+    traceSupabaseError("preferences.allergens.replace", error);
+    throw error;
   }
-  if (normalizedAllergens.length) {
-    const { error: insertAllergensError } = await client
-      .from("user_preference_allergens")
-      .insert(normalizedAllergens.map((allergen_code) => ({ user_id: userId, allergen_code })));
-    if (insertAllergensError) {
-      traceSupabaseError("preferences.allergens.replace", insertAllergensError);
-      throw insertAllergensError;
+}
+
+async function replaceAvoidedIngredients(
+  client: NonNullable<ReturnType<typeof getSupabaseClient>>,
+  userId: string,
+  ingredientIds: string[],
+) {
+  if (ingredientIds.length) {
+    const { error } = await client
+      .from("user_avoided_ingredients")
+      .upsert(
+        ingredientIds.map((ingredient_id) => ({
+          user_id: userId,
+          ingredient_id,
+        })),
+        { onConflict: "user_id,ingredient_id" },
+      );
+    if (error) {
+      traceSupabaseError("preferences.avoidedIngredients.replace", error);
+      throw error;
     }
   }
-  const { error: avoidedError } = await client
+  let staleIngredients = client
     .from("user_avoided_ingredients")
     .delete()
     .eq("user_id", userId);
-  if (avoidedError) {
-    traceSupabaseError("preferences.avoidedIngredients.replace", avoidedError);
-    throw avoidedError;
+  if (ingredientIds.length)
+    staleIngredients = staleIngredients.not(
+      "ingredient_id",
+      "in",
+      `(${ingredientIds.join(",")})`,
+    );
+  const { error } = await staleIngredients;
+  if (error) {
+    traceSupabaseError("preferences.avoidedIngredients.replace", error);
+    throw error;
   }
-  if (canonicalAvoidedIngredientIds.length) {
-    const { error: insertAvoidedError } = await client
-      .from("user_avoided_ingredients")
-      .insert(canonicalAvoidedIngredientIds.map((ingredient_id) => ({ user_id: userId, ingredient_id })));
-    if (insertAvoidedError) {
-      traceSupabaseError("preferences.avoidedIngredients.replace", insertAvoidedError);
-      throw insertAvoidedError;
-    }
-  }
-  return toPreferences({
-    ...(data as PreferencesRow),
-    user_preference_allergens: normalizedAllergens.map((allergen_code) => ({ allergen_code })),
-    user_avoided_ingredients: canonicalAvoidedIngredientIds.map((ingredient_id) => ({ ingredient_id })),
-  });
 }

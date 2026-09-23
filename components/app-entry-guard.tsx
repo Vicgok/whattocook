@@ -26,8 +26,9 @@ export function AppEntryGuard({ children }: { children: (destination: "onboardin
   }, [profileStatus]);
 
   useEffect(() => {
-    if (profile.data?.onboardingCompleted && !device.completed) void device.markCompleted();
-  }, [device, profile.data?.onboardingCompleted]);
+    if (profile.data?.onboardingCompleted && !device.completed)
+      void device.markCompleted();
+  }, [device.completed, device.markCompleted, profile.data?.onboardingCompleted]);
 
   let state: BootstrapState;
   if (restoring || !isReady || !device.ready) state = { status: "loading" };

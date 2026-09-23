@@ -25,6 +25,7 @@ import {
 } from "@/components/states";
 import { radius, spacing, typography } from "@/theme";
 import { TopScrollProtection } from "@/components/top-scroll-protection";
+import { useConnectivityStatus } from "@/context/ConnectivityContext";
 
 export default function RecipeResults() {
   const router = useRouter();
@@ -32,6 +33,7 @@ export default function RecipeResults() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const { pantry } = usePantry();
   const { preferences } = useApp();
+  const connectivityStatus = useConnectivityStatus();
   const recipesQuery = useRecipes();
   const { data: recipes = [] } = recipesQuery;
   const ingredientsQuery = useIngredients();
@@ -92,7 +94,9 @@ export default function RecipeResults() {
           <View style={{ width: 44 }} />
         </View>
         <TextInput value={query} onChangeText={setQuery} style={styles.query} />
-        <OfflineBanner onRetry={retry} />
+        {connectivityStatus === "offline" ? (
+          <OfflineBanner onRetry={retry} />
+        ) : null}
         {isLoading ? (
           <LoadingRecipeCards />
         ) : hasError ? (

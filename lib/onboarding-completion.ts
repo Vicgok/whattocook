@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const KEY = "WHATTOCOOK_ONBOARDING_COMPLETED_V1";
 type StoredCompletion = { userId: string; completed: true };
@@ -16,7 +16,10 @@ export function useDeviceOnboardingCompletion(userId?: string) {
   const [ready, setReady] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const lifecycle = useRef(0);
+
   useEffect(() => {
+    const currentLifecycle = ++lifecycle.current;
     let active = true;
     setReady(false);
     AsyncStorage.getItem(KEY)
@@ -48,12 +51,16 @@ export function useDeviceOnboardingCompletion(userId?: string) {
       });
     return () => {
       active = false;
+      if (lifecycle.current === currentLifecycle) lifecycle.current += 1;
     };
   }, [userId]);
-  const markCompleted = async () => {
+
+  const markCompleted = useCallback(async () => {
     if (!userId) return;
+    const currentLifecycle = lifecycle.current;
     await markDeviceOnboardingCompleted(userId);
-    setCompleted(true);
-  };
+    if (lifecycle.current === currentLifecycle) setCompleted(true);
+  }, [userId]);
+
   return { ready, completed, error, markCompleted };
 }
